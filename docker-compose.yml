@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-theglowmission}
       POSTGRES_USER: ${POSTGRES_USER:-theglowmission}
@@ -23,6 +24,7 @@ services:
         condition: service_healthy
     expose:
       - "8000"
+    restart: unless-stopped
     command: ["/app/scripts/backend-entrypoint.sh"]
 
   frontend:
@@ -32,6 +34,7 @@ services:
     env_file: .env
     depends_on:
       - backend
+    restart: unless-stopped
     expose:
       - "3000"
 
@@ -42,6 +45,7 @@ services:
     depends_on:
       - backend
       - frontend
+    restart: unless-stopped
     ports:
       - "8080:1723"
       - "1723:1723"
