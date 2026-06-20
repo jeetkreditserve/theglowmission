@@ -1,0 +1,40 @@
+"use client";
+
+import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminResourceManager } from "@/components/admin/AdminResourceManager";
+
+type TestimonialItem = {
+  id: number;
+  name: string;
+  quote: string;
+  role: string;
+  active: boolean;
+  ordering: number;
+};
+
+export default function AdminTestimonialsPage() {
+  return (
+    <AdminShell title="Testimonials">
+      <AdminResourceManager<TestimonialItem>
+        path="/admin/testimonials/"
+        title="Testimonials"
+        itemLabel="testimonial"
+        createLabel="New testimonial"
+        defaults={{ name: "", quote: "", role: "", active: true, ordering: 0 }}
+        columns={[
+          { label: "Name", value: (item) => item.name },
+          { label: "Role", value: (item) => item.role || "-" },
+          { label: "Active", value: (item) => (item.active ? "Yes" : "No") },
+          { label: "Order", value: (item) => item.ordering }
+        ]}
+        fields={[
+          { name: "name", label: "Name" },
+          { name: "role", label: "Role" },
+          { name: "quote", label: "Quote", type: "textarea", span: "full" },
+          { name: "active", label: "Active", type: "checkbox" },
+          { name: "ordering", label: "Order", type: "number" }
+        ]}
+      />
+    </AdminShell>
+  );
+}
