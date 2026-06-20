@@ -12,7 +12,7 @@ const navItems = [
   { label: "Navigation", href: "/admin/navigation", icon: Link2 },
   { label: "Hero", href: "/admin/hero", icon: View },
   { label: "Pages", href: "/admin/pages", icon: FileText },
-  { label: "Services", href: "/admin/services", icon: Sparkles },
+  { label: "Glow Rituals", href: "/admin/glow-rituals", icon: Sparkles },
   { label: "Gallery", href: "/admin/gallery", icon: GalleryHorizontalEnd },
   { label: "Media", href: "/admin/media", icon: Images },
   { label: "FAQs", href: "/admin/faqs", icon: HelpCircle },

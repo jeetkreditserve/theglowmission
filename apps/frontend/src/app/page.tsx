@@ -28,7 +28,7 @@ export default async function HomePage() {
     <BrandTheme brand={brand}>
       <PublicHeader brand={brand} navigationItems={navigationItems} />
       <main>
-        <Hero slides={slides} services={services} />
+        <Hero slides={slides} />
         <SectionRenderer sections={page?.sections || []} services={services} gallery={gallery} faqs={faqs} testimonials={testimonials} />
       </main>
       <Footer brand={brand} navigationItems={navigationItems} />

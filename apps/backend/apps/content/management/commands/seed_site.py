@@ -216,6 +216,9 @@ class Command(BaseCommand):
         ensure_image_variants(field)
 
     def seed_navigation(self):
+        SiteNavigationItem.objects.filter(label__iexact="Services").delete()
+        SiteNavigationItem.objects.filter(url="/services").delete()
+
         items = [
             ("Home", "/", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 0),
             ("Glow Rituals", "/glow-rituals", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 1),
@@ -238,13 +241,14 @@ class Command(BaseCommand):
             )
 
     def seed_pages(self):
+        Page.objects.filter(slug="services").delete()
+
         pages = [
             ("Home", "home", 0),
             ("About", "about", 1),
-            ("Services", "services", 2),
-            ("Glow Rituals", "glow-rituals", 3),
-            ("Gallery", "gallery", 4),
-            ("Contact", "contact", 5),
+            ("Glow Rituals", "glow-rituals", 2),
+            ("Gallery", "gallery", 3),
+            ("Contact", "contact", 4),
         ]
         for title, slug, ordering in pages:
             Page.objects.update_or_create(
