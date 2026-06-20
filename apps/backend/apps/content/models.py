@@ -45,6 +45,28 @@ class BrandSettings(TimeStampedModel):
         return self.site_title
 
 
+class ImageVariant(TimeStampedModel):
+    class Format(models.TextChoices):
+        WEBP = "webp", "WebP"
+        JPEG = "jpeg", "JPEG"
+
+    source_key = models.CharField(max_length=512, db_index=True)
+    variant_key = models.CharField(max_length=512, unique=True)
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    format = models.CharField(max_length=16, choices=Format.choices)
+    byte_size = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["source_key", "format", "width"]
+        constraints = [
+            models.UniqueConstraint(fields=["source_key", "width", "format"], name="unique_image_variant_size_format"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.source_key} {self.width}w {self.format}"
+
+
 class HeroSlide(TimeStampedModel):
     title = models.CharField(max_length=220)
     subtitle = models.CharField(max_length=260, blank=True)

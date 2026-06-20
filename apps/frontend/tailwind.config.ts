@@ -5,14 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ivory: "#FBF4EA",
-        cream: "#F4E7D8",
-        champagne: "#C9A46A",
-        taupe: "#BBA08E",
-        nude: "#D8C7A4",
-        sage: "#82947A",
-        rose: "#CFAE9E",
-        espresso: "#251D18"
+        ivory: "rgb(var(--color-ivory-rgb) / <alpha-value>)",
+        cream: "rgb(var(--color-cream-rgb) / <alpha-value>)",
+        champagne: "rgb(var(--color-champagne-rgb) / <alpha-value>)",
+        taupe: "rgb(var(--color-taupe-rgb) / <alpha-value>)",
+        nude: "rgb(var(--color-nude-rgb) / <alpha-value>)",
+        sage: "rgb(var(--color-sage-rgb) / <alpha-value>)",
+        rose: "rgb(var(--color-rose-rgb) / <alpha-value>)",
+        espresso: "rgb(var(--color-espresso-rgb) / <alpha-value>)"
       },
       fontFamily: {
         display: ["var(--font-display)", "Cinzel", "Georgia", "serif"],

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Footer } from "@/components/public/Footer";
+import { BrandTheme } from "@/components/public/BrandTheme";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 import { fallbackBrand, fallbackServices, getBrandSettings, getServices } from "@/lib/api";
 import type { Service } from "@/types/cms";
 
@@ -11,11 +13,20 @@ export default async function ServicesPage() {
   const [brand, services] = await Promise.all([getBrandSettings().catch(() => fallbackBrand()), getServices().catch(() => fallbackServices)]);
 
   return (
-    <>
+    <BrandTheme brand={brand}>
       <PublicHeader brand={brand} />
       <main className="bg-ivory">
         <section className="relative overflow-hidden bg-espresso px-5 py-24 text-ivory md:py-32 lg:px-8">
-          <img src="/generated/glow-hero-facial-massage.png" alt="" className="absolute inset-0 h-full w-full object-cover opacity-[0.34]" />
+          <ResponsiveImage
+            src="/generated/glow-hero-signature.webp"
+            fallbackSrc="/generated/glow-hero-signature.webp"
+            alt=""
+            sizes="100vw"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover opacity-[0.34]"
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-espresso via-espresso/80 to-espresso/28" />
           <div className="relative mx-auto max-w-7xl">
             <h1 className="max-w-4xl font-display text-5xl leading-[1] md:text-7xl">Treatment rituals for glow, lift, and deep facial rest.</h1>
@@ -33,14 +44,23 @@ export default async function ServicesPage() {
         </section>
       </main>
       <Footer brand={brand} />
-    </>
+    </BrandTheme>
   );
 }
 
 function ServiceRow({ service, flip }: { service: Service; flip?: boolean }) {
   return (
     <article className={`grid overflow-hidden border border-champagne/25 bg-cream shadow-[0_24px_80px_rgba(37,29,24,0.08)] md:grid-cols-2 ${flip ? "md:[&>*:first-child]:order-2" : ""}`}>
-      <img src={service.image_url || fallbackImage(service)} alt={service.image_alt || service.title} className="h-full min-h-[420px] w-full object-cover" />
+      <ResponsiveImage
+        src={service.image_url || fallbackImage(service)}
+        variants={service.image_variants}
+        fallbackSrc={fallbackImage(service)}
+        alt={service.image_alt || service.title}
+        sizes="(min-width: 768px) 50vw, 100vw"
+        loading="lazy"
+        decoding="async"
+        className="h-full min-h-[420px] w-full object-cover"
+      />
       <div className="flex flex-col justify-center p-7 md:p-10">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-champagne">{service.duration}</p>
         <h2 className="mt-4 font-display text-4xl leading-tight text-espresso md:text-5xl">{service.title}</h2>
@@ -60,7 +80,7 @@ function ServiceRow({ service, flip }: { service: Service; flip?: boolean }) {
             {service.sale_price_amount && <p className="text-sm text-espresso/44 line-through">{formatPrice(service.currency, service.price_amount)}</p>}
             <p className="mt-2 text-xs uppercase tracking-[0.14em] text-espresso/50">{service.price_note}</p>
           </div>
-          <Link href={service.cta_url || "/campaigns/glow-consultation"} className="inline-flex items-center gap-3 bg-espresso px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-ivory transition hover:bg-champagne hover:text-espresso">
+          <Link href={service.cta_url || "/campaigns/glow-consultation"} className="brand-button inline-flex items-center gap-3 bg-espresso px-6 py-4 text-xs font-bold text-ivory transition hover:bg-champagne hover:text-espresso">
             {service.cta_label || "Book this ritual"}
             <ArrowRight size={15} />
           </Link>
@@ -71,9 +91,9 @@ function ServiceRow({ service, flip }: { service: Service; flip?: boolean }) {
 }
 
 function fallbackImage(service: Service) {
-  if (service.slug.includes("face-yoga")) return "/generated/glow-service-face-yoga.png";
-  if (service.slug.includes("natural")) return "/generated/glow-service-natural-facial.png";
-  return "/generated/glow-service-signature.png";
+  if (service.slug.includes("face-yoga")) return "/generated/glow-service-face-yoga.webp";
+  if (service.slug.includes("natural")) return "/generated/glow-service-natural-facial.webp";
+  return "/generated/glow-service-signature.webp";
 }
 
 function formatPrice(currency: string, value: string | null) {

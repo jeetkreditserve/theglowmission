@@ -98,7 +98,9 @@ export function fallbackBrand(): BrandSettings {
     mission_statement:
       "A mission of care, confidence, visible glow, and natural beauty. Every session is one peaceful hour of natural ingredients, face yoga, facial massage, lifting techniques, and calming rituals.",
     logo_url: "/reference/glow-mission-logo-3d.png",
+    logo_key: null,
     favicon_url: "/reference/glow-mission-logo-3d.png",
+    favicon_key: null,
     primary_color: "#D9B88C",
     background_color: "#FFF7F0",
     surface_color: "#F6EEE4",
@@ -107,6 +109,7 @@ export function fallbackBrand(): BrandSettings {
     text_color: "#2B2623",
     heading_font: "Cinzel",
     body_font: "Montserrat",
+    cta_style: { radius: "2px", case: "uppercase", tracking: "0.12em" },
     contact_email: "hello@theglowmission.com",
     phone: "",
     address: "",

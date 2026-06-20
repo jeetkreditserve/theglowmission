@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.common.image_variants import image_variant_set
 from apps.common.storage import file_key, file_url
 from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, Testimonial
 
@@ -13,12 +14,17 @@ class S3FileMixin:
     def get_key_for(self, obj, field_name: str):
         return file_key(getattr(obj, field_name))
 
+    def get_variants_for(self, obj, field_name: str):
+        return image_variant_set(getattr(obj, field_name))
+
 
 class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     logo_key = serializers.SerializerMethodField()
+    logo_variants = serializers.SerializerMethodField()
     favicon_url = serializers.SerializerMethodField()
     favicon_key = serializers.SerializerMethodField()
+    favicon_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = BrandSettings
@@ -31,9 +37,11 @@ class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
             "logo_image",
             "logo_url",
             "logo_key",
+            "logo_variants",
             "favicon",
             "favicon_url",
             "favicon_key",
+            "favicon_variants",
             "primary_color",
             "background_color",
             "surface_color",
@@ -50,7 +58,11 @@ class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
             "social_links",
             "updated_at",
         ]
-        read_only_fields = ["id", "logo_url", "logo_key", "favicon_url", "favicon_key", "updated_at"]
+        read_only_fields = ["id", "logo_url", "logo_key", "logo_variants", "favicon_url", "favicon_key", "favicon_variants", "updated_at"]
+        extra_kwargs = {
+            "logo_image": {"write_only": True, "required": False},
+            "favicon": {"write_only": True, "required": False},
+        }
 
     def get_logo_url(self, obj):
         return self.get_url_for(obj, "logo_image")
@@ -58,16 +70,23 @@ class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
     def get_logo_key(self, obj):
         return self.get_key_for(obj, "logo_image")
 
+    def get_logo_variants(self, obj):
+        return self.get_variants_for(obj, "logo_image")
+
     def get_favicon_url(self, obj):
         return self.get_url_for(obj, "favicon")
 
     def get_favicon_key(self, obj):
         return self.get_key_for(obj, "favicon")
 
+    def get_favicon_variants(self, obj):
+        return self.get_variants_for(obj, "favicon")
+
 
 class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     image_key = serializers.SerializerMethodField()
+    image_variants = serializers.SerializerMethodField()
     campaign_slug = serializers.CharField(source="linked_campaign.slug", read_only=True)
     campaign_title = serializers.CharField(source="linked_campaign.title", read_only=True)
     is_active_now = serializers.BooleanField(read_only=True)
@@ -82,6 +101,7 @@ class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
             "image",
             "image_url",
             "image_key",
+            "image_variants",
             "image_alt",
             "offer_label",
             "primary_cta_label",
@@ -99,7 +119,8 @@ class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
             "config",
             "updated_at",
         ]
-        read_only_fields = ["image_url", "image_key", "campaign_slug", "campaign_title", "is_active_now", "updated_at"]
+        read_only_fields = ["image_url", "image_key", "image_variants", "campaign_slug", "campaign_title", "is_active_now", "updated_at"]
+        extra_kwargs = {"image": {"write_only": True, "required": False}}
 
     def get_image_url(self, obj):
         return self.get_url_for(obj, "image")
@@ -107,10 +128,14 @@ class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
     def get_image_key(self, obj):
         return self.get_key_for(obj, "image")
 
+    def get_image_variants(self, obj):
+        return self.get_variants_for(obj, "image")
+
 
 class PageSectionSerializer(S3FileMixin, serializers.ModelSerializer):
     media_url = serializers.SerializerMethodField()
     media_key = serializers.SerializerMethodField()
+    media_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = PageSection
@@ -124,19 +149,24 @@ class PageSectionSerializer(S3FileMixin, serializers.ModelSerializer):
             "media",
             "media_url",
             "media_key",
+            "media_variants",
             "cta_label",
             "cta_url",
             "ordering",
             "active",
             "config",
         ]
-        read_only_fields = ["media_url", "media_key"]
+        read_only_fields = ["media_url", "media_key", "media_variants"]
+        extra_kwargs = {"media": {"write_only": True, "required": False}}
 
     def get_media_url(self, obj):
         return self.get_url_for(obj, "media")
 
     def get_media_key(self, obj):
         return self.get_key_for(obj, "media")
+
+    def get_media_variants(self, obj):
+        return self.get_variants_for(obj, "media")
 
 
 class PageSerializer(serializers.ModelSerializer):
@@ -151,6 +181,7 @@ class PageSerializer(serializers.ModelSerializer):
 class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     image_key = serializers.SerializerMethodField()
+    image_variants = serializers.SerializerMethodField()
     booking_campaign_slug = serializers.CharField(source="booking_campaign.slug", read_only=True)
 
     class Meta:
@@ -164,6 +195,7 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
             "image",
             "image_url",
             "image_key",
+            "image_variants",
             "image_alt",
             "duration",
             "session_count",
@@ -182,13 +214,17 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
             "ordering",
             "updated_at",
         ]
-        read_only_fields = ["image_url", "image_key", "booking_campaign_slug", "updated_at"]
+        read_only_fields = ["image_url", "image_key", "image_variants", "booking_campaign_slug", "updated_at"]
+        extra_kwargs = {"image": {"write_only": True, "required": False}}
 
     def get_image_url(self, obj):
         return self.get_url_for(obj, "image")
 
     def get_image_key(self, obj):
         return self.get_key_for(obj, "image")
+
+    def get_image_variants(self, obj):
+        return self.get_variants_for(obj, "image")
 
 
 class TestimonialSerializer(serializers.ModelSerializer):
@@ -208,11 +244,13 @@ class FAQSerializer(serializers.ModelSerializer):
 class GalleryImageSerializer(S3FileMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     image_key = serializers.SerializerMethodField()
+    image_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = GalleryImage
-        fields = ["id", "title", "alt_text", "image", "image_url", "image_key", "caption", "active", "ordering", "updated_at"]
-        read_only_fields = ["image_url", "image_key", "updated_at"]
+        fields = ["id", "title", "alt_text", "image", "image_url", "image_key", "image_variants", "caption", "active", "ordering", "updated_at"]
+        read_only_fields = ["image_url", "image_key", "image_variants", "updated_at"]
+        extra_kwargs = {"image": {"write_only": True, "required": False}}
 
     def get_image_url(self, obj):
         return self.get_url_for(obj, "image")
@@ -220,18 +258,26 @@ class GalleryImageSerializer(S3FileMixin, serializers.ModelSerializer):
     def get_image_key(self, obj):
         return self.get_key_for(obj, "image")
 
+    def get_image_variants(self, obj):
+        return self.get_variants_for(obj, "image")
+
 
 class MediaAssetSerializer(S3FileMixin, serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     file_key = serializers.SerializerMethodField()
+    file_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = MediaAsset
-        fields = ["id", "title", "file", "file_url", "file_key", "alt_text", "metadata", "created_at"]
-        read_only_fields = ["file_url", "file_key", "created_at"]
+        fields = ["id", "title", "file", "file_url", "file_key", "file_variants", "alt_text", "metadata", "created_at"]
+        read_only_fields = ["file_url", "file_key", "file_variants", "created_at"]
+        extra_kwargs = {"file": {"write_only": True}}
 
     def get_file_url(self, obj):
         return self.get_url_for(obj, "file")
 
     def get_file_key(self, obj):
         return self.get_key_for(obj, "file")
+
+    def get_file_variants(self, obj):
+        return self.get_variants_for(obj, "file")

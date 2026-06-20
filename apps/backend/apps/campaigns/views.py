@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.image_variants import ensure_image_variants
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
 from apps.campaigns.serializers import (
     CampaignFormFieldSerializer,
@@ -70,6 +71,14 @@ class CampaignFormViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "slug"]
     ordering_fields = ["updated_at", "title", "status"]
+
+    def perform_create(self, serializer):
+        form = serializer.save()
+        ensure_image_variants(form.hero_image)
+
+    def perform_update(self, serializer):
+        form = serializer.save()
+        ensure_image_variants(form.hero_image)
 
     @action(detail=True, methods=["get"])
     def responses(self, request, pk=None):

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Check, Quote } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Quote } from "lucide-react";
 import type { FAQ, GalleryImage, PageSection, Service, Testimonial } from "@/types/cms";
+import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 
 export function SectionRenderer({
   sections,
@@ -38,7 +39,7 @@ export function SectionRenderer({
 }
 
 function StoryBand({ section, flip }: { section: PageSection; flip?: boolean }) {
-  const image = section.media_url || "/generated/glow-about-story.png";
+  const image = section.media_url || "/generated/glow-about-story.webp";
   return (
     <section className="bg-ivory py-24 md:py-32">
       <div className={`mx-auto grid max-w-7xl items-center gap-14 px-5 md:grid-cols-[0.95fr_1.05fr] lg:px-8 ${flip ? "md:[&>*:first-child]:order-2" : ""}`}>
@@ -55,7 +56,16 @@ function StoryBand({ section, flip }: { section: PageSection; flip?: boolean }) 
         </div>
         <figure className="relative">
           <div className="absolute -left-5 -top-5 h-full w-full border border-champagne/35" />
-          <img src={image} alt={section.title} className="relative aspect-[4/5] w-full object-cover shadow-[0_34px_90px_rgba(37,29,24,0.18)]" />
+          <ResponsiveImage
+            src={image}
+            variants={section.media_variants}
+            fallbackSrc="/generated/glow-about-story.webp"
+            alt={section.title}
+            sizes="(min-width: 768px) 50vw, 100vw"
+            loading="lazy"
+            decoding="async"
+            className="relative aspect-[4/5] w-full object-cover shadow-[0_34px_90px_rgba(37,29,24,0.18)]"
+          />
         </figure>
       </div>
     </section>
@@ -77,7 +87,16 @@ function ServiceBand({ section, services }: { section: PageSection; services: Se
           {services.map((service) => (
             <article key={service.id} className={`group bg-ivory text-espresso shadow-[0_34px_90px_rgba(0,0,0,0.18)] ${service.featured ? "lg:-mt-8" : ""}`}>
               <div className="relative overflow-hidden">
-                <img src={service.image_url || serviceFallback(service)} alt={service.image_alt || service.title} className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-105" />
+                <ResponsiveImage
+                  src={service.image_url || serviceFallback(service)}
+                  variants={service.image_variants}
+                  fallbackSrc={serviceFallback(service)}
+                  alt={service.image_alt || service.title}
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-105"
+                />
                 {(service.discount_label || service.featured) && (
                   <span className="absolute left-5 top-5 bg-espresso px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-champagne">
                     {service.discount_label || "Featured"}
@@ -119,8 +138,10 @@ function GalleryBand({ section, gallery }: { section: PageSection; gallery: Gall
   const images = gallery.length
     ? gallery
     : [
-        { id: 1, title: "Glow", alt_text: "Luxury facial ritual", image_url: "/generated/glow-service-signature.png", caption: "Skin that glows. Confidence that shows.", active: true, ordering: 0 },
-        { id: 2, title: "Botanicals", alt_text: "Natural facial ingredients", image_url: "/generated/glow-service-natural-facial.png", caption: "Botanical textures and warm natural care.", active: true, ordering: 1 }
+        { id: 1, title: "Treatment room calm", alt_text: "Prepared boutique spa treatment bed", image_url: "/generated/glow-gallery-treatment-room.webp", caption: "A quiet room prepared for slow facial care.", active: true, ordering: 0 },
+        { id: 2, title: "Warm towel ritual", alt_text: "Warm towel compress prepared for a facial ritual", image_url: "/generated/glow-gallery-warm-towel.webp", caption: "Soft towels, warm hands, and a slower pace.", active: true, ordering: 1 },
+        { id: 3, title: "Signature massage detail", alt_text: "Luxury facial massage treatment detail", image_url: "/generated/glow-gallery-massage-detail.webp", caption: "A quiet hour of massage, touch, and rest.", active: true, ordering: 2 },
+        { id: 4, title: "Botanical textures", alt_text: "Natural facial ingredients", image_url: "/generated/glow-gallery-botanicals.webp", caption: "Botanical textures and warm natural care.", active: true, ordering: 3 }
       ];
   return (
     <section className="bg-cream py-24 md:py-32">
@@ -134,7 +155,16 @@ function GalleryBand({ section, gallery }: { section: PageSection; gallery: Gall
           <div className="grid gap-5 sm:grid-cols-2">
             {images.slice(0, 4).map((image, index) => (
               <figure key={image.id} className={index % 2 ? "sm:mt-12" : ""}>
-                <img src={image.image_url || "/generated/glow-service-signature.png"} alt={image.alt_text || image.title} className="aspect-[4/5] w-full object-cover shadow-[0_24px_70px_rgba(37,29,24,0.12)]" />
+                <ResponsiveImage
+                  src={image.image_url || "/generated/glow-gallery-massage-detail.webp"}
+                  variants={image.image_variants}
+                  fallbackSrc="/generated/glow-gallery-massage-detail.webp"
+                  alt={image.alt_text || image.title}
+                  sizes="(min-width: 768px) 40vw, 100vw"
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[4/5] w-full object-cover shadow-[0_24px_70px_rgba(37,29,24,0.12)]"
+                />
                 <figcaption className="px-1 py-4 text-sm leading-6 text-espresso/64">{image.caption}</figcaption>
               </figure>
             ))}
@@ -179,7 +209,10 @@ function FAQBand({ section, faqs }: { section: PageSection; faqs: FAQ[] }) {
         <div className="divide-y divide-champagne/25 border-y border-champagne/25">
           {faqs.slice(0, 8).map((faq) => (
             <details key={faq.id} className="group py-5">
-              <summary className="cursor-pointer list-none font-display text-2xl text-espresso marker:hidden">{faq.question}</summary>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-display text-2xl text-espresso outline-none marker:hidden focus-visible:text-champagne">
+                <span>{faq.question}</span>
+                <ChevronDown size={22} className="shrink-0 text-champagne transition duration-200 group-open:rotate-180" />
+              </summary>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-espresso/66">{faq.answer}</p>
             </details>
           ))}
@@ -205,9 +238,9 @@ function CtaBand({ section }: { section: PageSection }) {
 }
 
 function serviceFallback(service: Service) {
-  if (service.slug.includes("face-yoga")) return "/generated/glow-service-face-yoga.png";
-  if (service.slug.includes("natural")) return "/generated/glow-service-natural-facial.png";
-  return "/generated/glow-service-signature.png";
+  if (service.slug.includes("face-yoga")) return "/generated/glow-service-face-yoga.webp";
+  if (service.slug.includes("natural")) return "/generated/glow-service-natural-facial.webp";
+  return "/generated/glow-service-signature.webp";
 }
 
 function formatPrice(currency: string, value: string | null) {

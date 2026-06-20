@@ -1,5 +1,6 @@
 import { Footer } from "@/components/public/Footer";
 import { Hero } from "@/components/public/Hero";
+import { BrandTheme } from "@/components/public/BrandTheme";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { SectionRenderer } from "@/components/public/SectionRenderer";
 import { fallbackBrand, fallbackServices, getBrandSettings, getFAQs, getGallery, getHeroSlides, getPage, getServices, getTestimonials } from "@/lib/api";
@@ -18,13 +19,13 @@ export default async function HomePage() {
   ]);
 
   return (
-    <>
+    <BrandTheme brand={brand}>
       <PublicHeader brand={brand} />
       <main>
         <Hero brand={brand} slides={slides} services={services} />
         <SectionRenderer sections={page?.sections || []} services={services} gallery={gallery} faqs={faqs} testimonials={testimonials} />
       </main>
       <Footer brand={brand} />
-    </>
+    </BrandTheme>
   );
 }

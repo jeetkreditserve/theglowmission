@@ -3,14 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --color-ivory: #fff7f0;
-  --color-cream: #f6eee4;
-  --color-champagne: #d9b88c;
-  --color-taupe: #cdb8a9;
-  --color-nude: #e6d6c6;
-  --color-espresso: #2b2623;
+  --color-ivory: #fbf4ea;
+  --color-ivory-rgb: 251 244 234;
+  --color-cream: #f4e7d8;
+  --color-cream-rgb: 244 231 216;
+  --color-champagne: #c9a46a;
+  --color-champagne-rgb: 201 164 106;
+  --color-taupe: #bba08e;
+  --color-taupe-rgb: 187 160 142;
+  --color-nude: #d8c7a4;
+  --color-nude-rgb: 216 199 164;
+  --color-sage: #82947a;
+  --color-sage-rgb: 130 148 122;
+  --color-rose: #cfae9e;
+  --color-rose-rgb: 207 174 158;
+  --color-espresso: #251d18;
+  --color-espresso-rgb: 37 29 24;
   --font-display: "Cinzel", "Cormorant Garamond", Georgia, serif;
   --font-body: "Montserrat", "Lato", Arial, sans-serif;
+  --cta-radius: 2px;
+  --cta-tracking: 0.12em;
+  --cta-case: uppercase;
 }
 
 * {
@@ -44,6 +57,12 @@ select {
   font-family: var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.brand-button {
+  border-radius: var(--cta-radius);
+  letter-spacing: var(--cta-tracking);
+  text-transform: var(--cta-case);
 }
 
 .gold-rule {

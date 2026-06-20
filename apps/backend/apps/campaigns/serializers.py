@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.core.validators import validate_email
 from rest_framework import serializers
 
+from apps.common.image_variants import image_variant_set
 from apps.common.storage import file_key, file_url
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
 
@@ -13,6 +14,9 @@ class S3FileMixin:
 
     def get_key_for(self, obj, field_name: str):
         return file_key(getattr(obj, field_name))
+
+    def get_variants_for(self, obj, field_name: str):
+        return image_variant_set(getattr(obj, field_name))
 
 
 class CampaignFormFieldSerializer(serializers.ModelSerializer):
@@ -48,6 +52,7 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
     is_active_now = serializers.BooleanField(read_only=True)
     hero_image_url = serializers.SerializerMethodField()
     hero_image_key = serializers.SerializerMethodField()
+    hero_image_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = CampaignForm
@@ -61,6 +66,7 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "hero_image",
             "hero_image_url",
             "hero_image_key",
+            "hero_image_variants",
             "hero_image_alt",
             "button_label",
             "starts_at",
@@ -74,7 +80,8 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "is_active_now",
             "updated_at",
         ]
-        read_only_fields = ["hero_image_url", "hero_image_key", "response_count", "is_active_now", "updated_at"]
+        read_only_fields = ["hero_image_url", "hero_image_key", "hero_image_variants", "response_count", "is_active_now", "updated_at"]
+        extra_kwargs = {"hero_image": {"write_only": True, "required": False}}
 
     def get_hero_image_url(self, obj):
         return self.get_url_for(obj, "hero_image")
@@ -82,10 +89,14 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
     def get_hero_image_key(self, obj):
         return self.get_key_for(obj, "hero_image")
 
+    def get_hero_image_variants(self, obj):
+        return self.get_variants_for(obj, "hero_image")
+
 
 class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
     fields = PublicCampaignFormFieldSerializer(many=True, read_only=True)
     hero_image_url = serializers.SerializerMethodField()
+    hero_image_variants = serializers.SerializerMethodField()
 
     class Meta:
         model = CampaignForm
@@ -96,6 +107,7 @@ class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "summary",
             "offer_label",
             "hero_image_url",
+            "hero_image_variants",
             "hero_image_alt",
             "button_label",
             "success_message",
@@ -107,6 +119,9 @@ class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
 
     def get_hero_image_url(self, obj):
         return self.get_url_for(obj, "hero_image")
+
+    def get_hero_image_variants(self, obj):
+        return self.get_variants_for(obj, "hero_image")
 
 
 class CampaignFormResponseSerializer(serializers.ModelSerializer):

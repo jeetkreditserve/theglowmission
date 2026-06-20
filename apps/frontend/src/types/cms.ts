@@ -1,3 +1,19 @@
+export type ImageVariant = {
+  url: string | null;
+  key: string;
+  width: number;
+  height: number;
+  format: "webp" | "jpeg";
+  byte_size: number;
+};
+
+export type ImageVariantSet = {
+  webp: ImageVariant[];
+  jpeg: ImageVariant[];
+  fallback_url: string | null;
+  fallback_key: string | null;
+};
+
 export type BrandSettings = {
   id: number;
   site_title: string;
@@ -5,7 +21,11 @@ export type BrandSettings = {
   essence: string;
   mission_statement: string;
   logo_url: string | null;
+  logo_key: string | null;
+  logo_variants?: ImageVariantSet;
   favicon_url: string | null;
+  favicon_key: string | null;
+  favicon_variants?: ImageVariantSet;
   primary_color: string;
   background_color: string;
   surface_color: string;
@@ -14,6 +34,7 @@ export type BrandSettings = {
   text_color: string;
   heading_font: string;
   body_font: string;
+  cta_style: Record<string, unknown>;
   contact_email: string;
   phone: string;
   address: string;
@@ -28,6 +49,7 @@ export type PageSection = {
   subtitle: string;
   body: string;
   media_url: string | null;
+  media_variants?: ImageVariantSet;
   cta_label: string;
   cta_url: string;
   ordering: number;
@@ -41,6 +63,7 @@ export type HeroSlide = {
   subtitle: string;
   body: string;
   image_url: string | null;
+  image_variants?: ImageVariantSet;
   image_alt: string;
   offer_label: string;
   primary_cta_label: string;
@@ -76,6 +99,7 @@ export type Service = {
   short_description: string;
   description: string;
   image_url: string | null;
+  image_variants?: ImageVariantSet;
   image_alt: string;
   duration: string;
   session_count: number;
@@ -99,6 +123,7 @@ export type GalleryImage = {
   title: string;
   alt_text: string;
   image_url: string | null;
+  image_variants?: ImageVariantSet;
   caption: string;
   active: boolean;
   ordering: number;
@@ -142,6 +167,7 @@ export type CampaignForm = {
   summary: string;
   offer_label: string;
   hero_image_url: string | null;
+  hero_image_variants?: ImageVariantSet;
   hero_image_alt: string;
   button_label: string;
   starts_at?: string | null;

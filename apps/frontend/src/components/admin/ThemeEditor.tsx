@@ -4,7 +4,20 @@ import { useEffect, useState } from "react";
 import { adminFetch } from "@/lib/api";
 import type { BrandSettings } from "@/types/cms";
 
-const colorFields: Array<keyof BrandSettings> = ["primary_color", "background_color", "surface_color", "muted_color", "accent_color", "text_color"];
+type CtaStyle = {
+  radius?: string;
+  case?: string;
+  tracking?: string;
+};
+
+const colorFields: Array<{ name: keyof BrandSettings; label: string; usage: string }> = [
+  { name: "primary_color", label: "Primary / champagne", usage: "Buttons, links, borders, and highlighted labels" },
+  { name: "background_color", label: "Background / ivory", usage: "Main public page background" },
+  { name: "surface_color", label: "Surface / cream", usage: "Alternating sections, panels, and soft surfaces" },
+  { name: "muted_color", label: "Muted / taupe", usage: "Secondary accents and subdued UI details" },
+  { name: "accent_color", label: "Accent / nude", usage: "Warm supporting accent color" },
+  { name: "text_color", label: "Text / espresso", usage: "Primary public text color" }
+];
 
 export function ThemeEditor() {
   const [brand, setBrand] = useState<BrandSettings | null>(null);
@@ -30,6 +43,9 @@ export function ThemeEditor() {
         muted_color: brand.muted_color,
         accent_color: brand.accent_color,
         text_color: brand.text_color,
+        heading_font: brand.heading_font,
+        body_font: brand.body_font,
+        cta_style: brand.cta_style || {},
         contact_email: brand.contact_email,
         phone: brand.phone,
         address: brand.address,
@@ -52,6 +68,8 @@ export function ThemeEditor() {
     return <div className="border border-champagne/30 bg-ivory p-8 text-sm text-espresso/65">{status || "Loading theme settings..."}</div>;
   }
 
+  const ctaStyle = (brand.cta_style || {}) as CtaStyle;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
       <section className="border border-champagne/30 bg-ivory p-6">
@@ -60,6 +78,10 @@ export function ThemeEditor() {
           <TextField label="Tagline" value={brand.tagline} onChange={(value) => setBrand({ ...brand, tagline: value })} />
           <TextArea label="Essence" value={brand.essence} onChange={(value) => setBrand({ ...brand, essence: value })} />
           <TextArea label="Mission statement" value={brand.mission_statement} onChange={(value) => setBrand({ ...brand, mission_statement: value })} />
+          <div className="grid gap-5 md:grid-cols-2">
+            <TextField label="Heading font" value={brand.heading_font} onChange={(value) => setBrand({ ...brand, heading_font: value })} />
+            <TextField label="Body font" value={brand.body_font} onChange={(value) => setBrand({ ...brand, body_font: value })} />
+          </div>
           <div className="grid gap-5 md:grid-cols-2">
             <FileField label="Logo image" onChange={(file) => setFiles((current) => ({ ...current, logo_image: file }))} />
             <FileField label="Favicon" onChange={(file) => setFiles((current) => ({ ...current, favicon: file }))} />
@@ -70,7 +92,7 @@ export function ThemeEditor() {
             <TextField label="Instagram" value={brand.instagram_handle} onChange={(value) => setBrand({ ...brand, instagram_handle: value })} />
           </div>
           <TextArea label="Address" value={brand.address} onChange={(value) => setBrand({ ...brand, address: value })} />
-          <button onClick={save} className="w-fit bg-champagne px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white">
+          <button onClick={save} className="brand-button w-fit bg-champagne px-7 py-4 text-sm font-semibold text-espresso">
             Save theme
           </button>
           {status && <p className="text-sm text-espresso/62">{status}</p>}
@@ -80,14 +102,25 @@ export function ThemeEditor() {
         <h2 className="font-display text-2xl">Palette</h2>
         <div className="mt-6 grid gap-4">
           {colorFields.map((field) => (
-            <label key={field} className="flex items-center justify-between gap-4 border border-champagne/20 bg-ivory p-3">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-espresso/60">{field.replace("_", " ")}</span>
+            <label key={field.name} className="grid gap-3 border border-champagne/20 bg-ivory p-3">
+              <span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-espresso/70">{field.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-espresso/55">{field.usage}</span>
+              </span>
               <span className="flex items-center gap-3">
-                <input type="color" value={String(brand[field])} onChange={(event) => setBrand({ ...brand, [field]: event.target.value })} />
-                <span className="font-mono text-sm">{String(brand[field])}</span>
+                <input type="color" value={String(brand[field.name])} onChange={(event) => setBrand({ ...brand, [field.name]: event.target.value })} />
+                <span className="font-mono text-sm">{String(brand[field.name])}</span>
               </span>
             </label>
           ))}
+        </div>
+        <div className="mt-8 border-t border-champagne/25 pt-6">
+          <h2 className="font-display text-2xl">CTA Style</h2>
+          <div className="mt-5 grid gap-4">
+            <TextField label="Button radius" value={ctaStyle.radius || "2px"} onChange={(value) => setBrand({ ...brand, cta_style: { ...ctaStyle, radius: value } })} />
+            <TextField label="Letter spacing" value={ctaStyle.tracking || "0.12em"} onChange={(value) => setBrand({ ...brand, cta_style: { ...ctaStyle, tracking: value } })} />
+            <SelectField label="Text transform" value={ctaStyle.case || "uppercase"} onChange={(value) => setBrand({ ...brand, cta_style: { ...ctaStyle, case: value } })} />
+          </div>
         </div>
       </section>
     </div>
@@ -117,6 +150,20 @@ function FileField({ label, onChange }: { label: string; onChange: (file: File |
     <label className="block">
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">{label}</span>
       <input type="file" accept="image/*" onChange={(event) => onChange(event.target.files?.[0])} className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 text-sm outline-none focus:border-champagne" />
+    </label>
+  );
+}
+
+function SelectField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 outline-none focus:border-champagne">
+        <option value="uppercase">Uppercase</option>
+        <option value="none">None</option>
+        <option value="capitalize">Capitalize</option>
+        <option value="lowercase">Lowercase</option>
+      </select>
     </label>
   );
 }

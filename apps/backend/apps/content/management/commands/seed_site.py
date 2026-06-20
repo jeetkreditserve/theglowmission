@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 
+from apps.common.image_variants import ensure_image_variants
 from apps.campaigns.models import CampaignForm, CampaignFormField
 from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, Page, PageSection, Service, Testimonial
 
@@ -86,6 +87,7 @@ class Command(BaseCommand):
     def attach_seed_image(self, instance, field_name: str, filename: str | list[str], storage_name: str):
         field = getattr(instance, field_name)
         if field:
+            ensure_image_variants(field)
             return
         filenames = filename if isinstance(filename, list) else [filename]
         source = None
@@ -98,6 +100,7 @@ class Command(BaseCommand):
             raise CommandError(f"Missing seed asset. Tried: {', '.join(filenames)}")
         with source.open("rb") as handle:
             field.save(storage_name, File(handle), save=False)
+        ensure_image_variants(field)
 
     def seed_pages(self):
         pages = [
@@ -149,6 +152,7 @@ class Command(BaseCommand):
                 "cta_label": "Read our story",
                 "cta_url": "/about",
                 "ordering": 2,
+                "asset_candidates": ["glow-about-story.webp", "glow-about-story.png"],
             },
             {
                 "section_type": PageSection.SectionType.GALLERY,
@@ -161,12 +165,16 @@ class Command(BaseCommand):
             },
         ]
         for section in sections:
-            PageSection.objects.update_or_create(
+            asset_candidates = section.pop("asset_candidates", None)
+            item, _ = PageSection.objects.update_or_create(
                 page=home,
                 section_type=section["section_type"],
                 ordering=section["ordering"],
                 defaults=section,
             )
+            if asset_candidates:
+                self.attach_seed_image(item, "media", asset_candidates, f"home-section-{item.ordering}.webp")
+                item.save()
 
         for slug in ["about", "services", "glow-rituals", "gallery", "contact"]:
             page = Page.objects.get(slug=slug)
@@ -195,7 +203,7 @@ class Command(BaseCommand):
                 "secondary_cta_url": "/services",
                 "ordering": 0,
                 "image_alt": "Luxury facial massage ritual in a calm boutique spa setting",
-                "asset_candidates": ["glow-hero-facial-massage.png", "glow-mission-post-1.png"],
+                "asset_candidates": ["glow-hero-signature.webp", "glow-hero-facial-massage.png", "glow-mission-post-1.png"],
             },
             {
                 "title": "Limited free glow sessions for new clients.",
@@ -208,7 +216,20 @@ class Command(BaseCommand):
                 "secondary_cta_url": "/glow-rituals",
                 "ordering": 1,
                 "image_alt": "Premium spa consultation setting for a limited glow session offer",
-                "asset_candidates": ["glow-hero-offer.png", "glow-mission-post-1.png"],
+                "asset_candidates": ["glow-hero-offer.webp", "glow-hero-offer.png", "glow-mission-post-1.png"],
+            },
+            {
+                "title": "A quieter lift through face yoga and touch.",
+                "subtitle": "Gentle facial movement, jaw release, and massage for a rested natural contour.",
+                "body": "Choose a hands-on ritual designed to soften tension and make your face feel lighter.",
+                "offer_label": "Face yoga lift",
+                "primary_cta_label": "Book face yoga",
+                "primary_cta_url": f"/campaigns/{campaign.slug}",
+                "secondary_cta_label": "View ritual menu",
+                "secondary_cta_url": "/glow-rituals",
+                "ordering": 2,
+                "image_alt": "Face yoga lift ritual in a calm boutique spa setting",
+                "asset_candidates": ["glow-hero-face-yoga.webp", "glow-service-face-yoga.png", "glow-mission-post-1.png"],
             },
         ]
         for slide in slides:
@@ -236,7 +257,7 @@ class Command(BaseCommand):
                 "inclusions": ["Gentle cleanse", "Facial massage", "Botanical mask", "Glow finish"],
                 "featured": True,
                 "ordering": 0,
-                "asset_candidates": ["glow-service-signature.png", "glow-mission-post-1.png"],
+                "asset_candidates": ["glow-service-signature.webp", "glow-service-signature.png", "glow-mission-post-1.png"],
             },
             {
                 "title": "Face Yoga Lift",
@@ -252,7 +273,7 @@ class Command(BaseCommand):
                 "inclusions": ["Guided face yoga", "Jaw and cheek release", "Lifting massage", "At-home practice tips"],
                 "featured": False,
                 "ordering": 1,
-                "asset_candidates": ["glow-service-face-yoga.png", "glow-mission-post-1.png"],
+                "asset_candidates": ["glow-service-face-yoga.webp", "glow-service-face-yoga.png", "glow-mission-post-1.png"],
             },
             {
                 "title": "Natural Ingredient Facial",
@@ -268,7 +289,7 @@ class Command(BaseCommand):
                 "inclusions": ["Ingredient consultation", "Botanical mask", "Cooling compress", "Hydrating finish"],
                 "featured": False,
                 "ordering": 2,
-                "asset_candidates": ["glow-service-natural-facial.png", "glow-mission-post-1.png"],
+                "asset_candidates": ["glow-service-natural-facial.webp", "glow-service-natural-facial.png", "glow-mission-post-1.png"],
             },
         ]
         for service in services:
@@ -315,10 +336,12 @@ class Command(BaseCommand):
             Testimonial.objects.update_or_create(name=name, defaults={"quote": quote, "role": role, "active": True, "ordering": ordering})
 
         gallery_items = [
-            ("Mission to make you glow", "The Glow Mission launch post with natural skincare ingredients", "Skin that glows. Confidence that shows.", 0, ["glow-mission-post-1.png"]),
-            ("Botanical ritual textures", "Natural facial ingredients prepared in ceramic bowls", "Honey, cucumber, citrus, herbs, and warm towels for a sensory ritual.", 1, ["glow-service-natural-facial.png", "glow-mission-post-1.png"]),
-            ("Signature treatment calm", "Luxury facial massage treatment scene", "A quiet hour of massage, touch, and rest.", 2, ["glow-service-signature.png", "glow-mission-post-1.png"]),
-            ("Founder-led care", "Elegant spa still life with natural care tools", "A personal practice shaped by care, consistency, and gentle hands.", 3, ["glow-about-story.png", "glow-mission-post-1.png"]),
+            ("Treatment room calm", "Prepared boutique spa treatment bed with ivory linens", "A quiet room prepared for slow facial care.", 0, ["glow-gallery-treatment-room.webp", "glow-about-story.png"]),
+            ("Warm towel ritual", "Warm towel compress prepared for a facial ritual", "Soft towels, warm hands, and a slower pace.", 1, ["glow-gallery-warm-towel.webp", "glow-mission-post-1.png"]),
+            ("Signature massage detail", "Luxury facial massage treatment detail", "A quiet hour of massage, touch, and rest.", 2, ["glow-gallery-massage-detail.webp", "glow-service-signature.png"]),
+            ("Botanical ritual textures", "Natural facial ingredients prepared in ceramic bowls", "Honey, cucumber, citrus, herbs, and warm towels for a sensory ritual.", 3, ["glow-gallery-botanicals.webp", "glow-service-natural-facial.png"]),
+            ("Post-treatment glow", "Rested client after a natural facial ritual", "Skin that feels rested, soft, and cared for.", 4, ["glow-gallery-post-treatment.webp", "glow-mission-post-1.png"]),
+            ("Quiet spa still life", "Elegant spa still life with natural care tools", "A personal practice shaped by care, consistency, and gentle hands.", 5, ["glow-gallery-still-life.webp", "glow-about-story.png"]),
         ]
         for title, alt_text, caption, ordering, assets in gallery_items:
             gallery, _ = GalleryImage.objects.update_or_create(
@@ -343,7 +366,7 @@ class Command(BaseCommand):
                 "hero_image_alt": "Luxury spa consultation setup for The Glow Mission",
             },
         )
-        self.attach_seed_image(form, "hero_image", ["glow-hero-offer.png", "glow-mission-post-1.png"], "glow-consultation-campaign.png")
+        self.attach_seed_image(form, "hero_image", ["glow-consultation.webp", "glow-hero-offer.png", "glow-mission-post-1.png"], "glow-consultation-campaign.webp")
         form.save()
         fields = [
             ("Full name", "full_name", CampaignFormField.FieldType.TEXT, True, 0, "Your name"),

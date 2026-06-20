@@ -53,7 +53,7 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full bg-espresso px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-ivory transition hover:bg-champagne hover:text-espresso disabled:opacity-60"
+        className="brand-button w-full bg-espresso px-7 py-4 text-sm font-bold text-ivory transition hover:bg-champagne hover:text-espresso disabled:opacity-60"
       >
         {status === "submitting" ? "Sending..." : form.button_label || "Submit"}
       </button>

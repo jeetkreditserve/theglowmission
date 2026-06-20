@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.image_variants import ensure_image_variants
 from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, Testimonial
 from apps.content.serializers import (
     BrandSettingsSerializer,
@@ -101,6 +102,22 @@ class AdminModelViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
 
+class ImageVariantGenerationMixin:
+    image_variant_fields: tuple[str, ...] = ()
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self.generate_image_variants(instance)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self.generate_image_variants(instance)
+
+    def generate_image_variants(self, instance):
+        for field_name in self.image_variant_fields:
+            ensure_image_variants(getattr(instance, field_name, None))
+
+
 class ReorderMixin:
     @action(detail=False, methods=["post"], url_path="reorder")
     def reorder(self, request):
@@ -117,7 +134,8 @@ class ReorderMixin:
         return Response({"status": "ok"})
 
 
-class BrandSettingsViewSet(AdminModelViewSet):
+class BrandSettingsViewSet(ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("logo_image", "favicon")
     queryset = BrandSettings.objects.all()
     serializer_class = BrandSettingsSerializer
 
@@ -133,14 +151,16 @@ class PageViewSet(AdminModelViewSet):
     ordering_fields = ["ordering", "title", "updated_at"]
 
 
-class HeroSlideViewSet(ReorderMixin, AdminModelViewSet):
+class HeroSlideViewSet(ReorderMixin, ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("image",)
     queryset = HeroSlide.objects.select_related("linked_campaign").all()
     serializer_class = HeroSlideSerializer
     search_fields = ["title", "subtitle", "body", "offer_label"]
     ordering_fields = ["ordering", "updated_at", "starts_at", "ends_at"]
 
 
-class PageSectionViewSet(ReorderMixin, AdminModelViewSet):
+class PageSectionViewSet(ReorderMixin, ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("media",)
     queryset = PageSection.objects.select_related("page").all()
     serializer_class = PageSectionSerializer
     search_fields = ["title", "page__title"]
@@ -154,7 +174,8 @@ class PageSectionViewSet(ReorderMixin, AdminModelViewSet):
         return queryset
 
 
-class ServiceViewSet(ReorderMixin, AdminModelViewSet):
+class ServiceViewSet(ReorderMixin, ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("image",)
     queryset = Service.objects.select_related("booking_campaign").all()
     serializer_class = ServiceSerializer
     search_fields = ["title", "slug", "short_description"]
@@ -175,14 +196,16 @@ class FAQViewSet(ReorderMixin, AdminModelViewSet):
     ordering_fields = ["ordering", "updated_at"]
 
 
-class GalleryImageViewSet(ReorderMixin, AdminModelViewSet):
+class GalleryImageViewSet(ReorderMixin, ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("image",)
     queryset = GalleryImage.objects.all()
     serializer_class = GalleryImageSerializer
     search_fields = ["title", "caption", "alt_text"]
     ordering_fields = ["ordering", "updated_at"]
 
 
-class MediaAssetViewSet(AdminModelViewSet):
+class MediaAssetViewSet(ImageVariantGenerationMixin, AdminModelViewSet):
+    image_variant_fields = ("file",)
     queryset = MediaAsset.objects.all()
     serializer_class = MediaAssetSerializer
     search_fields = ["title", "alt_text"]
