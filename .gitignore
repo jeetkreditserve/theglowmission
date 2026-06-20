@@ -1,0 +1,14 @@
+.env
+.venv/
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+coverage/
+dist/
+build/
+.idea/
+*.sqlite3
+

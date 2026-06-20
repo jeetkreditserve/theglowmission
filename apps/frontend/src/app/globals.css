@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ivory: #fff7f0;
+  --color-cream: #f6eee4;
+  --color-champagne: #d9b88c;
+  --color-taupe: #cdb8a9;
+  --color-nude: #e6d6c6;
+  --color-espresso: #2b2623;
+  --font-display: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  --font-body: "Montserrat", "Lato", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ivory);
+  color: var(--color-espresso);
+  font-family: var(--font-body);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.display-title {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217, 184, 140, 0.8), transparent);
+}
+
+.spa-shadow {
+  box-shadow: 0 24px 90px rgba(43, 38, 35, 0.13);
+}
+
+.texture-bg {
+  background:
+    radial-gradient(circle at top left, rgba(217, 184, 140, 0.25), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(230, 214, 198, 0.55), transparent 28rem),
+    var(--color-ivory);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
