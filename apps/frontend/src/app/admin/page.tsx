@@ -7,18 +7,21 @@ import { AdminTable, EditLink, ExportLink, PublicLink, useAdminList } from "@/co
 type Campaign = { id: number; title: string; slug: string; status: string; response_count: number; is_active_now: boolean };
 type Page = { id: number; title: string; slug: string; status: string; updated_at: string };
 type Service = { id: number; title: string; active: boolean; duration: string };
+type HeroSlide = { id: number; title: string; active: boolean };
 
 export default function AdminDashboardPage() {
   const campaigns = useAdminList<Campaign>("/admin/campaign-forms/");
   const pages = useAdminList<Page>("/admin/pages/");
   const services = useAdminList<Service>("/admin/services/");
+  const slides = useAdminList<HeroSlide>("/admin/hero-slides/");
 
   return (
     <AdminShell title="Overview">
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <Stat label="Pages" value={pages.items.length} />
         <Stat label="Services" value={services.items.length} />
         <Stat label="Campaigns" value={campaigns.items.length} />
+        <Stat label="Hero slides" value={slides.items.length} />
       </div>
       <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_0.9fr]">
         <AdminTable<Campaign>
@@ -42,6 +45,12 @@ export default function AdminDashboardPage() {
           <h2 className="font-display text-2xl">Quick actions</h2>
           <div className="mt-6 grid gap-3">
             <EditLink href="/admin/theme" />
+            <Link href="/admin/hero" className="text-sm font-semibold text-espresso">
+              Edit hero carousel
+            </Link>
+            <Link href="/admin/services" className="text-sm font-semibold text-espresso">
+              Edit treatment pricing
+            </Link>
             <PublicLink href="/" />
             <Link href="/admin/campaigns" className="text-sm font-semibold text-espresso">
               Manage campaigns
@@ -61,4 +70,3 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-

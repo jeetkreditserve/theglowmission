@@ -53,9 +53,9 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full bg-champagne px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-espresso disabled:opacity-60"
+        className="w-full bg-espresso px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-ivory transition hover:bg-champagne hover:text-espresso disabled:opacity-60"
       >
-        {status === "submitting" ? "Sending..." : "Submit"}
+        {status === "submitting" ? "Sending..." : form.button_label || "Submit"}
       </button>
       {message && <p className={`text-sm ${status === "success" ? "text-espresso" : "text-red-700"}`}>{message}</p>}
     </form>
@@ -71,7 +71,7 @@ function FieldInput({
   value: string | boolean;
   onChange: (value: string | boolean) => void;
 }) {
-  const baseClass = "mt-3 w-full border border-champagne/35 bg-ivory px-4 py-4 text-base text-espresso outline-none transition focus:border-champagne";
+  const baseClass = "mt-3 w-full border border-champagne/35 bg-white px-4 py-4 text-base text-espresso outline-none transition focus:border-champagne focus:ring-4 focus:ring-champagne/15";
   if (field.field_type === "textarea") {
     return <textarea required={field.required} placeholder={field.placeholder} className={`${baseClass} min-h-36`} value={String(value)} onChange={(event) => onChange(event.target.value)} />;
   }
@@ -85,6 +85,18 @@ function FieldInput({
           </option>
         ))}
       </select>
+    );
+  }
+  if (field.field_type === "radio") {
+    return (
+      <span className="mt-3 grid gap-3">
+        {field.options.map((option) => (
+          <label key={option} className="flex items-center gap-3 border border-champagne/25 bg-white px-4 py-3 text-sm text-espresso/72">
+            <input type="radio" required={field.required} name={field.key} checked={value === option} onChange={() => onChange(option)} className="h-4 w-4 accent-champagne" />
+            {option}
+          </label>
+        ))}
+      </span>
     );
   }
   if (field.field_type === "checkbox") {
@@ -106,4 +118,3 @@ function FieldInput({
     />
   );
 }
-

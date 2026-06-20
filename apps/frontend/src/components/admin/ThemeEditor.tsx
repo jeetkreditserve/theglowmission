@@ -8,6 +8,7 @@ const colorFields: Array<keyof BrandSettings> = ["primary_color", "background_co
 
 export function ThemeEditor() {
   const [brand, setBrand] = useState<BrandSettings | null>(null);
+  const [files, setFiles] = useState<{ logo_image?: File; favicon?: File }>({});
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -17,9 +18,8 @@ export function ThemeEditor() {
   async function save() {
     if (!brand) return;
     setStatus("Saving...");
-    const updated = await adminFetch<BrandSettings>(`/admin/brand-settings/${brand.id}/`, {
-      method: "PATCH",
-      body: JSON.stringify({
+    const formData = new FormData();
+    const payload = {
         site_title: brand.site_title,
         tagline: brand.tagline,
         essence: brand.essence,
@@ -32,10 +32,19 @@ export function ThemeEditor() {
         text_color: brand.text_color,
         contact_email: brand.contact_email,
         phone: brand.phone,
-        instagram_handle: brand.instagram_handle
-      })
+        address: brand.address,
+        instagram_handle: brand.instagram_handle,
+        social_links: brand.social_links || {}
+      };
+    Object.entries(payload).forEach(([key, value]) => formData.append(key, typeof value === "object" ? JSON.stringify(value) : String(value ?? "")));
+    if (files.logo_image) formData.append("logo_image", files.logo_image);
+    if (files.favicon) formData.append("favicon", files.favicon);
+    const updated = await adminFetch<BrandSettings>(`/admin/brand-settings/${brand.id}/`, {
+      method: "PATCH",
+      body: formData
     });
     setBrand(updated);
+    setFiles({});
     setStatus("Saved.");
   }
 
@@ -52,9 +61,15 @@ export function ThemeEditor() {
           <TextArea label="Essence" value={brand.essence} onChange={(value) => setBrand({ ...brand, essence: value })} />
           <TextArea label="Mission statement" value={brand.mission_statement} onChange={(value) => setBrand({ ...brand, mission_statement: value })} />
           <div className="grid gap-5 md:grid-cols-2">
+            <FileField label="Logo image" onChange={(file) => setFiles((current) => ({ ...current, logo_image: file }))} />
+            <FileField label="Favicon" onChange={(file) => setFiles((current) => ({ ...current, favicon: file }))} />
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
             <TextField label="Email" value={brand.contact_email} onChange={(value) => setBrand({ ...brand, contact_email: value })} />
+            <TextField label="Phone" value={brand.phone} onChange={(value) => setBrand({ ...brand, phone: value })} />
             <TextField label="Instagram" value={brand.instagram_handle} onChange={(value) => setBrand({ ...brand, instagram_handle: value })} />
           </div>
+          <TextArea label="Address" value={brand.address} onChange={(value) => setBrand({ ...brand, address: value })} />
           <button onClick={save} className="w-fit bg-champagne px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white">
             Save theme
           </button>
@@ -97,3 +112,11 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
   );
 }
 
+function FileField({ label, onChange }: { label: string; onChange: (file: File | undefined) => void }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">{label}</span>
+      <input type="file" accept="image/*" onChange={(event) => onChange(event.target.files?.[0])} className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 text-sm outline-none focus:border-champagne" />
+    </label>
+  );
+}

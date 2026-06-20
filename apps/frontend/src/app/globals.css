@@ -57,9 +57,83 @@ select {
 
 .texture-bg {
   background:
-    radial-gradient(circle at top left, rgba(217, 184, 140, 0.25), transparent 32rem),
-    radial-gradient(circle at bottom right, rgba(230, 214, 198, 0.55), transparent 28rem),
+    radial-gradient(circle at top left, rgba(201, 164, 106, 0.2), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(130, 148, 122, 0.14), transparent 28rem),
     var(--color-ivory);
+}
+
+.admin-panel {
+  border: 1px solid rgba(201, 164, 106, 0.28);
+  background: rgba(255, 250, 244, 0.9);
+  padding: 1.5rem;
+  box-shadow: 0 24px 80px rgba(37, 29, 24, 0.08);
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid rgba(201, 164, 106, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.85rem 1rem;
+  color: var(--color-espresso);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.admin-input:focus {
+  border-color: var(--color-champagne);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(201, 164, 106, 0.16);
+}
+
+.admin-button,
+.admin-button-secondary,
+.admin-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.admin-button {
+  background: var(--color-espresso);
+  color: var(--color-ivory);
+  padding: 0.8rem 1.15rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.admin-button:hover {
+  background: var(--color-champagne);
+  color: #211915;
+  transform: translateY(-1px);
+}
+
+.admin-button-secondary {
+  border: 1px solid rgba(201, 164, 106, 0.45);
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--color-espresso);
+  padding: 0.8rem 1.05rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.admin-button-secondary:hover,
+.admin-icon-link:hover {
+  border-color: var(--color-champagne);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.admin-icon-link {
+  border: 1px solid transparent;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-espresso);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -67,4 +141,3 @@ select {
     scroll-behavior: auto;
   }
 }
-

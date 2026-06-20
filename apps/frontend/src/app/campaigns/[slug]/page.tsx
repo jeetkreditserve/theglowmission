@@ -16,16 +16,21 @@ export default async function CampaignPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <PublicHeader brand={brand} />
-      <main className="texture-bg">
-        <section className="mx-auto grid max-w-7xl gap-12 px-5 py-20 md:grid-cols-[0.95fr_1.05fr] lg:px-8">
+      <main className="bg-espresso text-ivory">
+        <section className="mx-auto grid min-h-[calc(100vh-78px)] max-w-7xl gap-12 px-5 py-20 md:grid-cols-[0.9fr_1.1fr] md:items-center lg:px-8">
           <div>
-            <p className="display-title text-sm text-champagne">The Glow Mission</p>
-            <h1 className="mt-5 font-display text-5xl leading-tight text-espresso md:text-7xl">{form.title}</h1>
-            <p className="mt-7 text-lg leading-9 text-espresso/70">
-              Share a few details about your skin, your schedule, and the kind of glow ritual you are looking for.
+            {form.offer_label && <p className="text-xs font-bold uppercase tracking-[0.26em] text-champagne">{form.offer_label}</p>}
+            <h1 className="mt-5 font-display text-5xl leading-tight text-ivory md:text-7xl">{form.title}</h1>
+            <p className="mt-7 text-lg leading-9 text-ivory/70">
+              {form.summary || "Share a few details about your skin, your schedule, and the kind of glow ritual you are looking for."}
             </p>
+            <img
+              src={form.hero_image_url || "/generated/glow-hero-offer.png"}
+              alt={form.hero_image_alt || form.title}
+              className="mt-10 aspect-[16/9] w-full object-cover shadow-[0_34px_90px_rgba(0,0,0,0.24)]"
+            />
           </div>
-          <div className="border border-champagne/30 bg-cream p-6 md:p-9">
+          <div className="border border-champagne/25 bg-ivory p-6 text-espresso shadow-[0_34px_90px_rgba(0,0,0,0.22)] md:p-9">
             <CampaignFormClient form={form} />
           </div>
         </section>

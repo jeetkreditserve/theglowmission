@@ -270,16 +270,15 @@ export function AdminResourceManager<T extends { id: number }>({
                     ))}
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-3">
-                        {getEditHref ? (
+                        <button onClick={() => startEdit(item)} type="button" className="admin-icon-link">
+                          <Pencil size={15} />
+                          Edit
+                        </button>
+                        {getEditHref && (
                           <Link href={getEditHref(item)} className="admin-icon-link">
-                            <Pencil size={15} />
+                            <ExternalLink size={15} />
                             Open
                           </Link>
-                        ) : (
-                          <button onClick={() => startEdit(item)} type="button" className="admin-icon-link">
-                            <Pencil size={15} />
-                            Edit
-                          </button>
                         )}
                         {getPreviewHref && (
                           <Link href={getPreviewHref(item)} className="admin-icon-link" target="_blank">

@@ -5,12 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ivory: "#FFF7F0",
-        cream: "#F6EEE4",
-        champagne: "#D9B88C",
-        taupe: "#CDB8A9",
-        nude: "#E6D6C6",
-        espresso: "#2B2623"
+        ivory: "#FBF4EA",
+        cream: "#F4E7D8",
+        champagne: "#C9A46A",
+        taupe: "#BBA08E",
+        nude: "#D8C7A4",
+        sage: "#82947A",
+        rose: "#CFAE9E",
+        espresso: "#251D18"
       },
       fontFamily: {
         display: ["var(--font-display)", "Cinzel", "Georgia", "serif"],
@@ -25,4 +27,3 @@ const config: Config = {
 };
 
 export default config;
-
