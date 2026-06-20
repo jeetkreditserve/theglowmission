@@ -190,7 +190,7 @@ class Command(BaseCommand):
         brand.body_font = "Montserrat"
         brand.cta_style = {"radius": "2px", "case": "uppercase", "tracking": "0.12em"}
         brand.contact_email = "hello@theglowmission.com"
-        brand.instagram_handle = "@theglowmission"
+        brand.instagram_handle = "@the.glowm.ission"
         brand.social_links = {"instagram": "https://instagram.com/theglowmission"}
 
         self.attach_seed_image(brand, "logo_image", "glow-mission-logo-3d.png", "glow-mission-logo-3d.png")
