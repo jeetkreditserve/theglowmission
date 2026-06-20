@@ -173,10 +173,10 @@ export function fallbackBrand(): BrandSettings {
     heading_font: "Cinzel",
     body_font: "Montserrat",
     cta_style: { radius: "2px", case: "uppercase", tracking: "0.12em" },
-    contact_email: "hello@theglowmission.com",
+    contact_email: "info@theglowmission.com",
     phone: "",
     address: "",
-    instagram_handle: "@theglowmission",
+    instagram_handle: "@the.glow.mission",
     social_links: {}
   };
 }
