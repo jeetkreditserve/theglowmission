@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from django.core.validators import validate_email
 from django.utils.text import slugify
 from rest_framework import serializers
@@ -208,6 +210,8 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
                 cleaned[field.key] = raw
                 continue
 
+            cleaned_value = raw
+
             if field.field_type == CampaignFormField.FieldType.EMAIL:
                 try:
                     validate_email(str(raw))
@@ -215,8 +219,7 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
                     errors[field.key] = "Enter a valid email address."
             elif field.field_type == CampaignFormField.FieldType.NUMBER:
                 try:
-                    cleaned[field.key] = float(raw)
-                    continue
+                    cleaned_value = float(raw)
                 except (TypeError, ValueError):
                     errors[field.key] = "Enter a valid number."
             elif field.field_type in {CampaignFormField.FieldType.SELECT, CampaignFormField.FieldType.RADIO}:
@@ -227,11 +230,63 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
                 if not isinstance(raw, (bool, list)):
                     errors[field.key] = "Enter a valid checkbox value."
 
-            cleaned[field.key] = raw
+            if field.key not in errors:
+                validation_error = self._validate_custom_rules(field, cleaned_value)
+                if validation_error:
+                    errors[field.key] = validation_error
+
+            cleaned[field.key] = cleaned_value
 
         if errors:
             raise serializers.ValidationError(errors)
         return cleaned
+
+    def _validate_custom_rules(self, field: CampaignFormField, value):
+        validation = field.validation or {}
+
+        min_length = self._coerce_int(validation.get("min_length"))
+        if min_length is not None and len(str(value)) < min_length:
+            return f"Ensure this value has at least {min_length} characters."
+
+        max_length = self._coerce_int(validation.get("max_length"))
+        if max_length is not None and len(str(value)) > max_length:
+            return f"Ensure this value has no more than {max_length} characters."
+
+        pattern = validation.get("pattern")
+        if isinstance(pattern, str) and pattern and not re.fullmatch(pattern, str(value)):
+            return "Enter a valid value."
+
+        min_value = self._coerce_float(validation.get("min"))
+        max_value = self._coerce_float(validation.get("max"))
+        if min_value is not None or max_value is not None:
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                return "Enter a valid number."
+            if min_value is not None and numeric_value < min_value:
+                return f"Ensure this value is at least {self._format_number(min_value)}."
+            if max_value is not None and numeric_value > max_value:
+                return f"Ensure this value is no more than {self._format_number(max_value)}."
+
+        return ""
+
+    @staticmethod
+    def _coerce_int(value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _coerce_float(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _format_number(value: float) -> str:
+        return str(int(value)) if value.is_integer() else str(value)
 
     def create(self, validated_data):
         form = self.context["form"]

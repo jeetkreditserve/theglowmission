@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { HeroSlide } from "@/types/cms";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 
@@ -15,12 +15,21 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
   const active = resolvedSlides.length ? resolvedSlides[index % resolvedSlides.length] : null;
+  const canNavigate = resolvedSlides.length > 1;
 
   useEffect(() => {
     if (resolvedSlides.length < 2 || paused || reduceMotion) return;
     const timer = window.setTimeout(() => setIndex((current) => (current + 1) % resolvedSlides.length), autoplayMs);
     return () => window.clearTimeout(timer);
   }, [index, paused, reduceMotion, resolvedSlides.length]);
+
+  function showPrevious() {
+    setIndex((current) => (current - 1 + resolvedSlides.length) % resolvedSlides.length);
+  }
+
+  function showNext() {
+    setIndex((current) => (current + 1) % resolvedSlides.length);
+  }
 
   if (!active) {
     return null;
@@ -87,10 +96,49 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                   </Link>
                 )}
               </div>
+              {canNavigate && (
+                <div className="mt-7 flex items-center gap-3 md:hidden">
+                  <HeroNavButton direction="previous" onClick={showPrevious} />
+                  <HeroNavButton direction="next" onClick={showNext} />
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
+      {canNavigate && (
+        <div className="pointer-events-none absolute inset-x-8 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-between md:flex lg:inset-x-10">
+          <HeroNavButton direction="previous" onClick={showPrevious} desktop />
+          <HeroNavButton direction="next" onClick={showNext} desktop />
+        </div>
+      )}
     </section>
+  );
+}
+
+function HeroNavButton({
+  direction,
+  onClick,
+  desktop = false
+}: {
+  direction: "previous" | "next";
+  onClick: () => void;
+  desktop?: boolean;
+}) {
+  const label = direction === "previous" ? "Previous hero slide" : "Next hero slide";
+  const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`pointer-events-auto inline-flex h-12 w-12 shrink-0 items-center justify-center border border-ivory/35 bg-espresso/45 text-ivory shadow-[0_18px_48px_rgba(0,0,0,0.24)] backdrop-blur transition hover:border-champagne hover:bg-champagne hover:text-espresso focus:outline-none focus:ring-4 focus:ring-champagne/25 ${
+        desktop ? "h-14 w-14" : ""
+      }`}
+    >
+      <Icon size={desktop ? 24 : 22} aria-hidden="true" />
+    </button>
   );
 }

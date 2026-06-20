@@ -142,7 +142,8 @@ class Command(BaseCommand):
         self.seed_navigation()
         self.seed_pages()
         campaign = self.seed_campaign()
-        self.seed_hero_slides(campaign)
+        complimentary_campaign = self.seed_complimentary_campaign()
+        self.seed_hero_slides(campaign, complimentary_campaign)
         self.seed_services(campaign)
         self.seed_supporting_content()
         self.stdout.write(self.style.SUCCESS(f"Seeded CMS content for {brand.site_title}."))
@@ -443,7 +444,7 @@ class Command(BaseCommand):
                     self.attach_seed_image(item, "media", asset_candidates, f"{slug}-section-{item.ordering}.webp", force=force_asset)
                     item.save()
 
-    def seed_hero_slides(self, campaign: CampaignForm):
+    def seed_hero_slides(self, campaign: CampaignForm, complimentary_campaign: CampaignForm):
         slides = [
             {
                 "title": "Natural facial rituals for a softer, calmer glow.",
@@ -457,6 +458,7 @@ class Command(BaseCommand):
                 "ordering": 0,
                 "image_alt": "Luxury facial massage ritual in a calm boutique spa setting",
                 "asset_candidates": ["glow-hero-signature.webp", "glow-hero-facial-massage.png", "glow-mission-post-1.png"],
+                "linked_campaign": campaign,
             },
             {
                 "title": "Limited free glow sessions for new clients.",
@@ -464,12 +466,13 @@ class Command(BaseCommand):
                 "body": "Claim a consultation-led glow session and discover the ritual that suits your skin, tension, and pace.",
                 "offer_label": "Launch offer",
                 "primary_cta_label": "Claim the offer",
-                "primary_cta_url": f"/campaigns/{campaign.slug}",
+                "primary_cta_url": f"/campaigns/{complimentary_campaign.slug}",
                 "secondary_cta_label": "See treatment menu",
                 "secondary_cta_url": "/glow-rituals",
                 "ordering": 1,
                 "image_alt": "Premium spa consultation setting for a limited glow session offer",
                 "asset_candidates": ["glow-hero-offer.webp", "glow-hero-offer.png", "glow-mission-post-1.png"],
+                "linked_campaign": complimentary_campaign,
             },
             {
                 "title": "A sculpted lift in 40 calm minutes.",
@@ -483,13 +486,15 @@ class Command(BaseCommand):
                 "ordering": 2,
                 "image_alt": "The Face Lift Ritual in a calm boutique spa setting",
                 "asset_candidates": ["glow-hero-face-yoga.webp", "glow-service-face-yoga.png", "glow-mission-post-1.png"],
+                "linked_campaign": campaign,
             },
         ]
         for slide in slides:
             asset_candidates = slide.pop("asset_candidates")
+            linked_campaign = slide.pop("linked_campaign")
             item, _ = HeroSlide.objects.update_or_create(
                 ordering=slide["ordering"],
-                defaults={**slide, "active": True, "linked_campaign": campaign, "schedule_enabled": False, "starts_at": None, "ends_at": None},
+                defaults={**slide, "active": True, "linked_campaign": linked_campaign, "schedule_enabled": False, "starts_at": None, "ends_at": None},
             )
             self.attach_seed_image(item, "image", asset_candidates, f"hero-slide-{item.ordering}.png")
             item.save()
@@ -609,6 +614,137 @@ class Command(BaseCommand):
                     "required": required,
                     "options": RITUAL_NAMES if key == "preferred_ritual" else [],
                     "ordering": ordering,
+                    "active": True,
+                },
+            )
+        return form
+
+    def seed_complimentary_campaign(self):
+        form, _ = CampaignForm.objects.update_or_create(
+            slug="complimentary-facial-session",
+            defaults={
+                "title": "Complimentary Facial Session",
+                "status": CampaignForm.Status.PUBLISHED,
+                "summary": "Selected clients can apply for a complimentary natural facial session. The Glow Mission team will review your details and contact you to confirm availability and fit.",
+                "offer_label": "Limited complimentary facial",
+                "button_label": "Apply for my complimentary session",
+                "submitting_label": "Sending your application...",
+                "empty_select_label": "Select one",
+                "checkbox_label": "I consent to optional filming and social media use",
+                "error_message": "Please check the highlighted fields and try again.",
+                "schedule_enabled": False,
+                "starts_at": None,
+                "ends_at": None,
+                "success_message": "Thank you. Your complimentary facial session application has been received.",
+                "seo_title": "Complimentary Facial Session | The Glow Mission",
+                "seo_description": "Apply for a limited complimentary natural facial session at The Glow Mission.",
+                "hero_image_alt": "Premium spa setup for a complimentary facial session offer",
+            },
+        )
+        self.attach_seed_image(
+            form,
+            "hero_image",
+            ["glow-hero-offer.webp", "glow-consultation.webp", "glow-hero-offer.png", "glow-mission-post-1.png"],
+            "complimentary-facial-session-campaign.webp",
+        )
+        form.save()
+        phone_pattern = r"(?:\+91[\s-]?)?[6-9]\d(?:[\s-]?\d){8}"
+        fields = [
+            {
+                "label": "Full name",
+                "key": "full_name",
+                "field_type": CampaignFormField.FieldType.TEXT,
+                "required": True,
+                "ordering": 0,
+                "placeholder": "Your full name",
+                "validation": {"min_length": 2},
+            },
+            {
+                "label": "Phone",
+                "key": "phone",
+                "field_type": CampaignFormField.FieldType.PHONE,
+                "required": True,
+                "ordering": 1,
+                "placeholder": "+91",
+                "validation": {"pattern": phone_pattern},
+            },
+            {
+                "label": "Email",
+                "key": "email",
+                "field_type": CampaignFormField.FieldType.EMAIL,
+                "required": True,
+                "ordering": 2,
+                "placeholder": "you@example.com",
+                "validation": {},
+            },
+            {
+                "label": "Address",
+                "key": "address",
+                "field_type": CampaignFormField.FieldType.TEXTAREA,
+                "required": True,
+                "ordering": 3,
+                "placeholder": "Your address",
+                "validation": {},
+            },
+            {
+                "label": "Filming and social media consent",
+                "key": "filming_consent",
+                "field_type": CampaignFormField.FieldType.CHECKBOX,
+                "required": False,
+                "ordering": 4,
+                "help_text": "The facial process may be filmed and the footage may be used on The Glow Mission social media.",
+                "validation": {},
+            },
+            {
+                "label": "Skin type",
+                "key": "skin_type",
+                "field_type": CampaignFormField.FieldType.RADIO,
+                "required": True,
+                "ordering": 5,
+                "options": ["Dry", "Oily", "Combination"],
+                "validation": {},
+            },
+            {
+                "label": "Age",
+                "key": "age",
+                "field_type": CampaignFormField.FieldType.NUMBER,
+                "required": True,
+                "ordering": 6,
+                "placeholder": "Age",
+                "validation": {"min": 1, "max": 120},
+            },
+            {
+                "label": "Do you need a consultation?",
+                "key": "needs_consultation",
+                "field_type": CampaignFormField.FieldType.RADIO,
+                "required": True,
+                "ordering": 7,
+                "options": ["Yes", "No", "Not sure"],
+                "validation": {},
+            },
+            {
+                "label": "Allergies",
+                "key": "allergies",
+                "field_type": CampaignFormField.FieldType.TEXTAREA,
+                "required": True,
+                "ordering": 8,
+                "placeholder": "Please write none if no known allergies.",
+                "validation": {},
+            },
+        ]
+        for field in fields:
+            CampaignFormField.objects.update_or_create(
+                form=form,
+                key=field["key"],
+                defaults={
+                    "label": field["label"],
+                    "field_type": field["field_type"],
+                    "placeholder": field.get("placeholder", ""),
+                    "help_text": field.get("help_text", ""),
+                    "required": field["required"],
+                    "options": field.get("options", []),
+                    "validation": field["validation"],
+                    "ordering": field["ordering"],
                     "active": True,
                 },
             )

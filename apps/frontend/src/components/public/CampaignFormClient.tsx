@@ -87,8 +87,24 @@ function FieldInput({
   checkboxLabel: string;
 }) {
   const baseClass = "mt-3 w-full border border-champagne/35 bg-white px-4 py-4 text-base text-espresso outline-none transition focus:border-champagne focus:ring-4 focus:ring-champagne/15";
+  const minLength = validationNumber(field.validation, "min_length");
+  const maxLength = validationNumber(field.validation, "max_length");
+  const pattern = validationString(field.validation, "pattern");
+  const min = validationNumber(field.validation, "min");
+  const max = validationNumber(field.validation, "max");
+
   if (field.field_type === "textarea") {
-    return <textarea required={field.required} placeholder={field.placeholder} className={`${baseClass} min-h-36`} value={String(value)} onChange={(event) => onChange(event.target.value)} />;
+    return (
+      <textarea
+        required={field.required}
+        minLength={minLength}
+        maxLength={maxLength}
+        placeholder={field.placeholder}
+        className={`${baseClass} min-h-36`}
+        value={String(value)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
   }
   if (field.field_type === "select") {
     return (
@@ -126,10 +142,31 @@ function FieldInput({
     <input
       required={field.required}
       type={field.field_type === "phone" ? "tel" : field.field_type}
+      minLength={minLength}
+      maxLength={maxLength}
+      pattern={pattern}
+      min={min}
+      max={max}
+      inputMode={field.field_type === "phone" ? "tel" : field.field_type === "number" ? "numeric" : undefined}
       placeholder={field.placeholder}
       className={baseClass}
       value={String(value)}
       onChange={(event) => onChange(event.target.value)}
     />
   );
+}
+
+function validationNumber(validation: Record<string, unknown>, key: string) {
+  const value = validation[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function validationString(validation: Record<string, unknown>, key: string) {
+  const value = validation[key];
+  return typeof value === "string" && value ? value : undefined;
 }
