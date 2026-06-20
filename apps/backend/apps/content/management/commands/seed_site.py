@@ -189,7 +189,7 @@ class Command(BaseCommand):
         brand.heading_font = "Cormorant Garamond"
         brand.body_font = "Montserrat"
         brand.cta_style = {"radius": "2px", "case": "uppercase", "tracking": "0.12em"}
-        brand.contact_email = "hello@theglowmission.com"
+        brand.contact_email = "info@theglowmission.com"
         brand.instagram_handle = "@the.glowm.ission"
         brand.social_links = {"instagram": "https://instagram.com/theglowmission"}
 
