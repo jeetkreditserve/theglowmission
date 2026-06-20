@@ -1,7 +1,21 @@
-import type { BrandSettings, CampaignForm, FAQ, GalleryImage, HeroSlide, Page, Service, Testimonial } from "@/types/cms";
+import type { BrandSettings, CampaignForm, FAQ, GalleryImage, HeroSlide, Page, Service, SiteNavigationItem, Testimonial } from "@/types/cms";
 
 const serverBaseUrl = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000/api/v1";
 const browserBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+
+export class ApiError extends Error {
+  status: number;
+  path: string;
+  data: unknown;
+
+  constructor(message: string, status: number, path: string, data: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.path = path;
+    this.data = data;
+  }
+}
 
 export function apiBaseUrl() {
   return typeof window === "undefined" ? serverBaseUrl : browserBaseUrl;
@@ -18,7 +32,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     cache: "no-store"
   });
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${path}`);
+    const data = await readResponseBody(response);
+    throw new ApiError(formatApiError(data, `API request failed: ${response.status}`), response.status, path, data);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return response.json() as Promise<T>;
 }
@@ -51,6 +69,10 @@ export async function getTestimonials() {
   return apiFetch<Testimonial[]>("/public/testimonials/");
 }
 
+export async function getNavigationItems() {
+  return apiFetch<SiteNavigationItem[]>("/public/navigation-items/");
+}
+
 export async function getCampaignForm(slug: string) {
   return apiFetch<CampaignForm>(`/public/campaign-forms/${slug}/`);
 }
@@ -81,12 +103,53 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
     throw new Error("AUTH_REQUIRED");
   }
   if (!response.ok) {
-    throw new Error(`Admin API request failed: ${response.status} ${path}`);
+    const data = await readResponseBody(response);
+    throw new ApiError(formatApiError(data, `Admin API request failed: ${response.status}`), response.status, path, data);
   }
   if (response.status === 204) {
     return undefined as T;
   }
   return response.json() as Promise<T>;
+}
+
+async function readResponseBody(response: Response): Promise<unknown | null> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+export function formatApiError(data: unknown, fallback = "Something went wrong."): string {
+  if (!data) return fallback;
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) return data.map((item) => formatApiError(item, "")).filter(Boolean).join(" ");
+  if (typeof data === "object") {
+    const record = data as Record<string, unknown>;
+    if (typeof record.detail === "string") return record.detail;
+    if (typeof record.error === "string") return record.error;
+    if (Array.isArray(record.non_field_errors)) return record.non_field_errors.join(" ");
+    const [firstKey, firstValue] = Object.entries(record)[0] || [];
+    if (firstKey) {
+      const valueMessage = formatApiError(firstValue, "");
+      return valueMessage ? `${humanizeKey(firstKey)}: ${valueMessage}` : fallback;
+    }
+  }
+  return fallback;
+}
+
+export function flattenApiErrors(data: unknown): Record<string, string> {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+  return Object.fromEntries(
+    Object.entries(data as Record<string, unknown>).map(([key, value]) => [key, formatApiError(value, "Invalid value.")])
+  );
+}
+
+function humanizeKey(key: string): string {
+  if (key === "non_field_errors") return "Form";
+  return key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function fallbackBrand(): BrandSettings {
@@ -96,10 +159,10 @@ export function fallbackBrand(): BrandSettings {
     tagline: "Glow, the natural way.",
     essence: "Soft. Elegant. Timeless. Made to make you glow.",
     mission_statement:
-      "A mission of care, confidence, visible glow, and natural beauty. Every session is one peaceful hour of natural ingredients, face yoga, facial massage, lifting techniques, and calming rituals.",
-    logo_url: "/reference/glow-mission-logo-3d.png",
+      "A mission of care, confidence, visible glow, and natural beauty. Every ritual is shaped around natural ingredients, facial massage, sculpting touch, and calming skin care.",
+    logo_url: null,
     logo_key: null,
-    favicon_url: "/reference/glow-mission-logo-3d.png",
+    favicon_url: null,
     favicon_key: null,
     primary_color: "#D9B88C",
     background_color: "#FFF7F0",
@@ -117,78 +180,3 @@ export function fallbackBrand(): BrandSettings {
     social_links: {}
   };
 }
-
-export const fallbackServices: Service[] = [
-  {
-    id: 1,
-    title: "Signature Glow Ritual",
-    slug: "signature-glow-ritual",
-    short_description: "A one-hour facial massage and natural glow ritual for rested, brighter-looking skin.",
-    description: "Calming touch, natural textures, and a slow visible glow.",
-    image_url: null,
-    image_alt: "Signature Glow Ritual treatment",
-    duration: "60 minutes",
-    session_count: 1,
-    currency: "INR",
-    price_amount: "2500.00",
-    sale_price_amount: "1999.00",
-    discount_label: "Introductory glow price",
-    price_note: "Introductory pricing available",
-    inclusions: ["Facial massage", "Botanical mask", "Glow finish"],
-    featured: true,
-    cta_label: "Book this ritual",
-    cta_url: "/campaigns/glow-consultation",
-    booking_campaign: null,
-    booking_campaign_slug: "glow-consultation",
-    active: true,
-    ordering: 0
-  },
-  {
-    id: 2,
-    title: "Face Yoga Lift",
-    slug: "face-yoga-lift",
-    short_description: "Guided face yoga and lifting massage to soften tension and support natural contour.",
-    description: "Designed for facial tension, softness, and natural lift.",
-    image_url: null,
-    image_alt: "Face Yoga Lift treatment",
-    duration: "45 minutes",
-    session_count: 1,
-    currency: "INR",
-    price_amount: "1800.00",
-    sale_price_amount: null,
-    discount_label: "",
-    price_note: "Available as an add-on",
-    inclusions: ["Face yoga", "Lifting massage", "Jaw release"],
-    featured: false,
-    cta_label: "Book this ritual",
-    cta_url: "/campaigns/glow-consultation",
-    booking_campaign: null,
-    booking_campaign_slug: "glow-consultation",
-    active: true,
-    ordering: 1
-  },
-  {
-    id: 3,
-    title: "Natural Ingredient Facial",
-    slug: "natural-ingredient-facial",
-    short_description: "A gentle ritual inspired by honey, citrus, cucumber, and cream.",
-    description: "A soft, sensory ritual for calm and brightness.",
-    image_url: null,
-    image_alt: "Natural Ingredient Facial treatment",
-    duration: "60 minutes",
-    session_count: 1,
-    currency: "INR",
-    price_amount: "2200.00",
-    sale_price_amount: null,
-    discount_label: "Seasonal ritual",
-    price_note: "Seasonal ritual",
-    inclusions: ["Natural ingredients", "Cooling compress", "Hydrating finish"],
-    featured: false,
-    cta_label: "Book this ritual",
-    cta_url: "/campaigns/glow-consultation",
-    booking_campaign: null,
-    booking_campaign_slug: "glow-consultation",
-    active: true,
-    ordering: 2
-  }
-];

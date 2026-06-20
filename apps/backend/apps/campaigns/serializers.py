@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.core.validators import validate_email
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from apps.common.image_variants import image_variant_set
@@ -38,6 +39,31 @@ class CampaignFormFieldSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
+        extra_kwargs = {"key": {"required": False, "allow_blank": True}}
+
+    def validate(self, attrs):
+        label = attrs.get("label", getattr(self.instance, "label", ""))
+        key = attrs.get("key", getattr(self.instance, "key", ""))
+        form = attrs.get("form", getattr(self.instance, "form", None))
+        if not key and label:
+            key = slugify(label).replace("-", "_")
+            attrs["key"] = key
+        if form and key:
+            queryset = CampaignFormField.objects.filter(form=form, key=key)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({"key": "A field with this key already exists on this campaign."})
+        field_type = attrs.get("field_type", getattr(self.instance, "field_type", CampaignFormField.FieldType.TEXT))
+        active = attrs.get("active", getattr(self.instance, "active", True))
+        options = attrs.get("options", getattr(self.instance, "options", [])) or []
+        if active and field_type in {CampaignFormField.FieldType.SELECT, CampaignFormField.FieldType.RADIO} and not options:
+            raise serializers.ValidationError({"options": "Add at least one option for select and radio fields."})
+
+        key = attrs.get("key")
+        if self.instance and key and key != self.instance.key and self.instance.form.responses.exists():
+            raise serializers.ValidationError({"key": "Field key cannot be changed after responses exist."})
+        return attrs
 
 
 class PublicCampaignFormFieldSerializer(serializers.ModelSerializer):
@@ -69,6 +95,11 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "hero_image_variants",
             "hero_image_alt",
             "button_label",
+            "submitting_label",
+            "empty_select_label",
+            "checkbox_label",
+            "error_message",
+            "schedule_enabled",
             "starts_at",
             "ends_at",
             "success_message",
@@ -81,7 +112,31 @@ class CampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["hero_image_url", "hero_image_key", "hero_image_variants", "response_count", "is_active_now", "updated_at"]
-        extra_kwargs = {"hero_image": {"write_only": True, "required": False}}
+        extra_kwargs = {
+            "hero_image": {"write_only": True, "required": False},
+            "slug": {"required": False, "allow_blank": True},
+        }
+
+    def validate(self, attrs):
+        title = attrs.get("title", getattr(self.instance, "title", ""))
+        slug = attrs.get("slug", getattr(self.instance, "slug", ""))
+        if not slug and title:
+            slug = slugify(title)
+            attrs["slug"] = slug
+        if slug:
+            queryset = CampaignForm.objects.filter(slug=slug)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({"slug": "A campaign with this slug already exists."})
+        schedule_enabled = attrs.get("schedule_enabled", getattr(self.instance, "schedule_enabled", False))
+        starts_at = attrs.get("starts_at", getattr(self.instance, "starts_at", None))
+        ends_at = attrs.get("ends_at", getattr(self.instance, "ends_at", None))
+        if schedule_enabled and not starts_at and not ends_at:
+            raise serializers.ValidationError({"starts_at": "Add a start or end date, or turn scheduling off."})
+        if starts_at and ends_at and ends_at <= starts_at:
+            raise serializers.ValidationError({"ends_at": "End date must be after the start date."})
+        return attrs
 
     def get_hero_image_url(self, obj):
         return self.get_url_for(obj, "hero_image")
@@ -110,6 +165,10 @@ class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
             "hero_image_variants",
             "hero_image_alt",
             "button_label",
+            "submitting_label",
+            "empty_select_label",
+            "checkbox_label",
+            "error_message",
             "success_message",
             "redirect_url",
             "seo_title",

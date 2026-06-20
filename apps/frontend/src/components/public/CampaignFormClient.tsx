@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { submitCampaignResponse } from "@/lib/api";
+import { ApiError, flattenApiErrors, formatApiError, submitCampaignResponse } from "@/lib/api";
 import type { CampaignForm } from "@/types/cms";
 
 export function CampaignFormClient({ form }: { form: CampaignForm }) {
@@ -15,11 +15,13 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
   const [values, setValues] = useState<Record<string, string | boolean>>(initialState);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("submitting");
     setMessage("");
+    setFieldErrors({});
     try {
       const result = await submitCampaignResponse(form.slug, values);
       setStatus("success");
@@ -30,7 +32,13 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
       }
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Unable to submit the form.");
+      if (error instanceof ApiError) {
+        const responseErrors = (error.data as { response_data?: unknown } | null)?.response_data;
+        setFieldErrors(flattenApiErrors(responseErrors));
+        setMessage(formatApiError(responseErrors || error.data, form.error_message || "Please check the highlighted fields and try again."));
+        return;
+      }
+      setMessage(error instanceof Error ? error.message : form.error_message || "Please check the highlighted fields and try again.");
     }
   }
 
@@ -46,8 +54,11 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
             field={field}
             value={values[field.key]}
             onChange={(value) => setValues((current) => ({ ...current, [field.key]: value }))}
+            emptySelectLabel={form.empty_select_label}
+            checkboxLabel={form.checkbox_label}
           />
           {field.help_text && <span className="mt-2 block text-sm text-espresso/55">{field.help_text}</span>}
+          {fieldErrors[field.key] && <span className="mt-2 block text-sm font-semibold text-red-700">{fieldErrors[field.key]}</span>}
         </label>
       ))}
       <button
@@ -55,9 +66,9 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
         disabled={status === "submitting"}
         className="brand-button w-full bg-espresso px-7 py-4 text-sm font-bold text-ivory transition hover:bg-champagne hover:text-espresso disabled:opacity-60"
       >
-        {status === "submitting" ? "Sending..." : form.button_label || "Submit"}
+        {status === "submitting" ? form.submitting_label || form.button_label : form.button_label}
       </button>
-      {message && <p className={`text-sm ${status === "success" ? "text-espresso" : "text-red-700"}`}>{message}</p>}
+      {message && <div className={`border px-4 py-3 text-sm ${status === "success" ? "border-champagne/30 bg-cream text-espresso" : "border-red-200 bg-red-50 text-red-700"}`}>{message}</div>}
     </form>
   );
 }
@@ -65,11 +76,15 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
 function FieldInput({
   field,
   value,
-  onChange
+  onChange,
+  emptySelectLabel,
+  checkboxLabel
 }: {
   field: CampaignForm["fields"][number];
   value: string | boolean;
   onChange: (value: string | boolean) => void;
+  emptySelectLabel: string;
+  checkboxLabel: string;
 }) {
   const baseClass = "mt-3 w-full border border-champagne/35 bg-white px-4 py-4 text-base text-espresso outline-none transition focus:border-champagne focus:ring-4 focus:ring-champagne/15";
   if (field.field_type === "textarea") {
@@ -78,7 +93,7 @@ function FieldInput({
   if (field.field_type === "select") {
     return (
       <select required={field.required} className={baseClass} value={String(value)} onChange={(event) => onChange(event.target.value)}>
-        <option value="">Choose an option</option>
+        <option value="">{emptySelectLabel}</option>
         {field.options.map((option) => (
           <option key={option} value={option}>
             {option}
@@ -103,7 +118,7 @@ function FieldInput({
     return (
       <span className="mt-3 flex items-center gap-3 text-sm text-espresso/70">
         <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-champagne" />
-        Yes
+        {checkboxLabel}
       </span>
     );
   }

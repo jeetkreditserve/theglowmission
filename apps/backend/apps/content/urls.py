@@ -17,7 +17,9 @@ from apps.content.views import (
     PublicServiceListView,
     PublicTestimonialListView,
     ServiceViewSet,
+    SiteNavigationItemViewSet,
     TestimonialViewSet,
+    PublicNavigationListView,
 )
 
 router = DefaultRouter()
@@ -30,6 +32,7 @@ router.register("admin/testimonials", TestimonialViewSet, basename="admin-testim
 router.register("admin/faqs", FAQViewSet, basename="admin-faqs")
 router.register("admin/gallery", GalleryImageViewSet, basename="admin-gallery")
 router.register("admin/media-assets", MediaAssetViewSet, basename="admin-media-assets")
+router.register("admin/navigation-items", SiteNavigationItemViewSet, basename="admin-navigation-items")
 
 urlpatterns = [
     path("public/brand-settings/", PublicBrandSettingsView.as_view(), name="public-brand-settings"),
@@ -39,5 +42,6 @@ urlpatterns = [
     path("public/gallery/", PublicGalleryListView.as_view(), name="public-gallery"),
     path("public/faqs/", PublicFAQListView.as_view(), name="public-faqs"),
     path("public/testimonials/", PublicTestimonialListView.as_view(), name="public-testimonials"),
+    path("public/navigation-items/", PublicNavigationListView.as_view(), name="public-navigation-items"),
     path("", include(router.urls)),
 ]

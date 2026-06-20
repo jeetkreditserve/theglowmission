@@ -7,7 +7,7 @@ import type { ImageVariantSet } from "@/types/cms";
 type ResponsiveImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "srcSet" | "sizes"> & {
   variants?: ImageVariantSet | null;
   src?: string | null;
-  fallbackSrc: string;
+  fallbackSrc?: string;
   sizes: string;
 };
 
@@ -15,7 +15,7 @@ export function ResponsiveImage({ variants, src, fallbackSrc, sizes, alt, ...pro
   const webpSrcSet = buildSrcSet(variants?.webp);
   const jpegSrcSet = buildSrcSet(variants?.jpeg);
   const fallbackVariant = pickLargest(variants?.jpeg) || pickLargest(variants?.webp);
-  const resolvedSrc = fallbackVariant || src || variants?.fallback_url || fallbackSrc;
+  const resolvedSrc = fallbackVariant || src || variants?.fallback_url || fallbackSrc || "";
 
   return (
     <picture>
@@ -28,6 +28,7 @@ export function ResponsiveImage({ variants, src, fallbackSrc, sizes, alt, ...pro
         sizes={jpegSrcSet ? sizes : undefined}
         alt={alt}
         onError={(event) => {
+          if (!fallbackSrc) return props.onError?.(event);
           const image = event.currentTarget;
           if (!image.dataset.fallbackApplied) {
             image.dataset.fallbackApplied = "true";

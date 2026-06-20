@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Download, ExternalLink, Pencil } from "lucide-react";
+import { useAdminToast } from "@/components/admin/AdminToasts";
 import { adminFetch, apiBaseUrl, authHeaders } from "@/lib/api";
 
 type ApiList<T> = T[] | { results: T[] };
@@ -64,6 +65,13 @@ export function AdminTable<T extends { id: number }>({
             </tr>
           </thead>
           <tbody>
+            {!items.length && (
+              <tr>
+                <td className="px-5 py-8 text-espresso/55" colSpan={columns.length + (action ? 1 : 0)}>
+                  No {title.toLowerCase()} found.
+                </td>
+              </tr>
+            )}
             {items.map((item) => (
               <tr key={item.id} className="border-t border-champagne/20">
                 {columns.map((column) => (
@@ -91,11 +99,14 @@ export function EditLink({ href }: { href: string }) {
 }
 
 export function ExportLink({ formId }: { formId: number }) {
+  const toast = useAdminToast();
+
   async function download() {
     const response = await fetch(`${apiBaseUrl()}/admin/campaign-forms/${formId}/responses/export/`, {
       headers: authHeaders()
     });
     if (!response.ok) {
+      toast.error("Unable to export campaign responses.");
       return;
     }
     const blob = await response.blob();
@@ -105,6 +116,7 @@ export function ExportLink({ formId }: { formId: number }) {
     anchor.download = `campaign-${formId}-responses.xlsx`;
     anchor.click();
     window.URL.revokeObjectURL(href);
+    toast.success("Campaign responses exported.");
   }
 
   return (

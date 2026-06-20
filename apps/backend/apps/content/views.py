@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.image_variants import ensure_image_variants
-from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, Testimonial
+from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, SiteNavigationItem, Testimonial
 from apps.content.serializers import (
     BrandSettingsSerializer,
     FAQSerializer,
@@ -20,6 +20,7 @@ from apps.content.serializers import (
     PageSectionSerializer,
     PageSerializer,
     ServiceSerializer,
+    SiteNavigationItemSerializer,
     TestimonialSerializer,
 )
 
@@ -94,6 +95,15 @@ class PublicTestimonialListView(ListAPIView):
 
     def get_queryset(self):
         return Testimonial.objects.filter(active=True)
+
+
+class PublicNavigationListView(ListAPIView):
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = SiteNavigationItemSerializer
+
+    def get_queryset(self):
+        return SiteNavigationItem.objects.filter(active=True)
 
 
 class AdminModelViewSet(viewsets.ModelViewSet):
@@ -210,3 +220,10 @@ class MediaAssetViewSet(ImageVariantGenerationMixin, AdminModelViewSet):
     serializer_class = MediaAssetSerializer
     search_fields = ["title", "alt_text"]
     ordering_fields = ["created_at"]
+
+
+class SiteNavigationItemViewSet(ReorderMixin, AdminModelViewSet):
+    queryset = SiteNavigationItem.objects.all()
+    serializer_class = SiteNavigationItemSerializer
+    search_fields = ["label", "url"]
+    ordering_fields = ["placement", "ordering", "updated_at"]

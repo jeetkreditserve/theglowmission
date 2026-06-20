@@ -45,7 +45,7 @@ export default function AdminPagesPage() {
           { name: "seo_title", label: "SEO title", span: "full" },
           { name: "seo_description", label: "SEO description", type: "textarea", span: "full" }
         ]}
-        getPreviewHref={(item) => (item.slug === "home" ? "/" : `/${item.slug}`)}
+        getPreviewHref={(item) => (item.slug === "home" ? "/" : item.slug === "services" ? "/glow-rituals" : `/${item.slug}`)}
         getEditHref={(item) => `/admin/pages/${item.id}/sections`}
       />
     </AdminShell>

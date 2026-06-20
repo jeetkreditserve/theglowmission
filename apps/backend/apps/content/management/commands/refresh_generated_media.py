@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 
+from apps.common.image_variants import ensure_image_variants
 from apps.campaigns.models import CampaignForm
 from apps.content.models import GalleryImage, HeroSlide, Page, PageSection, Service
 
@@ -27,22 +28,24 @@ HERO_DEFAULTS = [
         "ordering": 2,
         "asset": "glow-hero-face-yoga.webp",
         "storage_name": "hero-slide-2.webp",
-        "title": "A quieter lift through face yoga and touch.",
-        "subtitle": "Gentle facial movement, jaw release, and massage for a rested natural contour.",
-        "body": "Choose a hands-on ritual designed to soften tension and make your face feel lighter.",
-        "offer_label": "Face yoga lift",
-        "primary_cta_label": "Book face yoga",
+        "title": "A sculpted lift in 40 calm minutes.",
+        "subtitle": "The Face Lift Ritual refreshes tired skin with restorative massage, gua sha, and cooling therapy.",
+        "body": "A focused sculpting ritual for a lifted, energised look when your face needs a quick reset.",
+        "offer_label": "The Face Lift Ritual",
+        "primary_cta_label": "Book the ritual",
         "primary_cta_url": "/campaigns/glow-consultation",
         "secondary_cta_label": "View ritual menu",
         "secondary_cta_url": "/glow-rituals",
-        "image_alt": "Face yoga lift ritual in a calm boutique spa setting",
+        "image_alt": "The Face Lift Ritual in a calm boutique spa setting",
     },
 ]
 
 SERVICE_ASSETS = {
-    "signature-glow-ritual": ("glow-service-signature.webp", "signature-glow-ritual.webp"),
-    "face-yoga-lift": ("glow-service-face-yoga.webp", "face-yoga-lift.webp"),
-    "natural-ingredient-facial": ("glow-service-natural-facial.webp", "natural-ingredient-facial.webp"),
+    "the-face-lift-ritual": ("glow-service-face-yoga.webp", "the-face-lift-ritual.webp"),
+    "the-glow-cleanse": ("glow-service-natural-facial.webp", "the-glow-cleanse.webp"),
+    "the-occasion-glow-ritual": ("glow-gallery-post-treatment.webp", "the-occasion-glow-ritual.webp"),
+    "the-rest-reset-ritual": ("glow-gallery-warm-towel.webp", "the-rest-reset-ritual.webp"),
+    "the-glow-mission-signature": ("glow-service-signature.webp", "the-glow-mission-signature.webp"),
 }
 
 GALLERY_DEFAULTS = [
@@ -77,6 +80,7 @@ class Command(BaseCommand):
         with self.asset_path(filename).open("rb") as handle:
             field.save(storage_name, File(handle), save=False)
         instance.save()
+        ensure_image_variants(field)
 
     def refresh_hero_slides(self):
         campaign = CampaignForm.objects.filter(slug="glow-consultation").first()
@@ -114,7 +118,7 @@ class Command(BaseCommand):
     def refresh_page_sections(self):
         story = PageSection.objects.filter(page__slug="home", section_type=PageSection.SectionType.STORY).first()
         if story:
-            self.save_asset(story, "media", "glow-about-story.webp", "home-section-story.webp")
+            self.save_asset(story, "media", "glow-gallery-still-life.webp", "home-section-story.webp")
 
     def refresh_gallery(self):
         managed_titles = [item[0] for item in GALLERY_DEFAULTS]

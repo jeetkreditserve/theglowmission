@@ -15,13 +15,18 @@ class CampaignForm(TimeStampedModel):
         ARCHIVED = "archived", "Archived"
 
     title = models.CharField(max_length=180)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     summary = models.CharField(max_length=280, blank=True)
     offer_label = models.CharField(max_length=140, blank=True)
     hero_image = models.ImageField(upload_to="campaigns/", blank=True, null=True)
     hero_image_alt = models.CharField(max_length=220, blank=True)
     button_label = models.CharField(max_length=120, default="Submit request")
+    submitting_label = models.CharField(max_length=120, default="Sending...")
+    empty_select_label = models.CharField(max_length=120, default="Select one")
+    checkbox_label = models.CharField(max_length=120, default="Yes")
+    error_message = models.TextField(default="Please check the highlighted fields and try again.")
+    schedule_enabled = models.BooleanField(default=False)
     starts_at = models.DateTimeField(blank=True, null=True)
     ends_at = models.DateTimeField(blank=True, null=True)
     success_message = models.TextField(default="Thank you. We will get back to you soon.")
@@ -42,6 +47,8 @@ class CampaignForm(TimeStampedModel):
         now = timezone.now()
         if self.status != self.Status.PUBLISHED:
             return False
+        if not self.schedule_enabled:
+            return True
         if self.starts_at and self.starts_at > now:
             return False
         if self.ends_at and self.ends_at < now:
@@ -66,7 +73,7 @@ class CampaignFormField(TimeStampedModel):
 
     form = models.ForeignKey(CampaignForm, related_name="fields", on_delete=models.CASCADE)
     label = models.CharField(max_length=180)
-    key = models.SlugField(max_length=120)
+    key = models.SlugField(max_length=120, blank=True)
     field_type = models.CharField(max_length=32, choices=FieldType.choices, default=FieldType.TEXT)
     placeholder = models.CharField(max_length=180, blank=True)
     help_text = models.CharField(max_length=260, blank=True)

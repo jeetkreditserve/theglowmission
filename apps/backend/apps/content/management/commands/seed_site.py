@@ -10,15 +10,127 @@ from django.core.management.base import BaseCommand, CommandError
 
 from apps.common.image_variants import ensure_image_variants
 from apps.campaigns.models import CampaignForm, CampaignFormField
-from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, Page, PageSection, Service, Testimonial
+from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, Page, PageSection, Service, SiteNavigationItem, Testimonial
 
 
 BRAND_STORY = (
     "The Glow Mission is a boutique facial wellness studio built around natural care, calm touch, "
     "and skin that looks quietly refreshed. The practice carries forward a mother's cosmetology wisdom: "
     "simple ingredients, consistent massage, facial movement, and patient hands. Every ritual is designed "
-    "to soften visible fatigue, release facial tension, and give you one peaceful hour to feel cared for."
+    "to soften visible fatigue, release facial tension, and give you a protected stretch of time to feel cared for."
 )
+
+RITUAL_SERVICES = [
+    {
+        "title": "The Face Lift Ritual",
+        "slug": "the-face-lift-ritual",
+        "short_description": "A quick sculpting ritual to lift, refresh, and energise the skin.",
+        "description": "A focused 40-minute ritual for facial tension, visible fatigue, and a naturally lifted look through restorative massage, gua sha, cooling therapy, and a nourishing glow pack.",
+        "duration": "40 MINS",
+        "price_amount": 3599,
+        "price_note": "Hero ingredients: Milk, Aloe Vera, Multani Mitti",
+        "inclusions": [
+            "Gentle Skin Cleanse",
+            "Lifting & Restorative Face Massage",
+            "Gua Sha Sculpt Massage",
+            "Fine-Line Ice Roller Therapy",
+            "Nourishing Glow Pack",
+        ],
+        "ordering": 0,
+        "asset_candidates": ["glow-service-face-yoga.webp", "glow-service-face-yoga.png", "glow-gallery-massage-detail.webp"],
+    },
+    {
+        "title": "The Glow Cleanse",
+        "slug": "the-glow-cleanse",
+        "short_description": "A comforting reset to refresh, soften, and awaken tired skin.",
+        "description": "A soft cleansing ritual for dullness and tired skin, with breathwork, relaxation touch, warm steam, exfoliation massage, facial uplift, cooling therapy, and a nourishing glow pack.",
+        "duration": "45 MINS",
+        "price_amount": 4999,
+        "price_note": "Hero ingredients: Banana, Milk, Honey",
+        "inclusions": [
+            "Grounding Breathwork",
+            "Head & Feet Relaxation Touch",
+            "Gentle Skin Cleanse",
+            "Warm Steam Therapy",
+            "Glow Polish Exfoliation Massage",
+            "Facial Uplift & Calming Massage",
+            "Fine-Line Ice Roller Therapy",
+            "Nourishing Glow Pack",
+        ],
+        "ordering": 1,
+        "asset_candidates": ["glow-service-natural-facial.webp", "glow-gallery-botanicals.webp", "glow-service-natural-facial.png"],
+    },
+    {
+        "title": "The Occasion Glow Ritual",
+        "slug": "the-occasion-glow-ritual",
+        "short_description": "A brightening ritual for special moments and naturally radiant skin.",
+        "description": "A radiance-focused ritual for occasions, photographs, and important days, combining relaxation touch, under-eye cooling, steam, brightening exfoliation, calming massage, radiance pack, and gua sha sculpting.",
+        "duration": "55 MINS",
+        "price_amount": 5999,
+        "price_note": "Hero ingredients: Papaya, Orange, Aloe Vera",
+        "inclusions": [
+            "Grounding Breathwork",
+            "Hands & Feet Relaxation Touch",
+            "Under-Eye Ice Cloth Therapy",
+            "Gentle Skin Cleanse",
+            "Warm Steam Therapy",
+            "Brightening Exfoliation Massage",
+            "Uplift & Calming Massage",
+            "Radiance Glow Pack",
+            "Gua Sha Sculpting Lift",
+        ],
+        "ordering": 2,
+        "asset_candidates": ["glow-gallery-post-treatment.webp", "glow-hero-offer.webp", "glow-mission-post-1.png"],
+    },
+    {
+        "title": "The Rest & Reset Ritual",
+        "slug": "the-rest-reset-ritual",
+        "short_description": "A deeper restorative ritual to calm the skin and bring back a rested glow.",
+        "description": "A longer restorative ritual for tired skin and a tired nervous system, with grounding breathwork, relaxation touch, steam, skin renewal, nourishment, facial uplift, light therapy, and a restorative glow pack.",
+        "duration": "75 MINS",
+        "price_amount": 7999,
+        "price_note": "Hero ingredients: Papaya, Aloe Vera, Banana",
+        "inclusions": [
+            "Grounding Breathwork",
+            "Head & Feet Relaxation Touch",
+            "Gentle Skin Cleanse",
+            "Warm Steam Therapy",
+            "Skin Renewal Exfoliation",
+            "Resting Nourishment Mask",
+            "Uplift & Calming Massage",
+            "Glow-Boost Light Therapy",
+            "Restorative Glow Pack",
+        ],
+        "ordering": 3,
+        "asset_candidates": ["glow-gallery-warm-towel.webp", "glow-gallery-treatment-room.webp", "glow-about-story.png"],
+    },
+    {
+        "title": "The Glow Mission Signature",
+        "slug": "the-glow-mission-signature",
+        "short_description": "A complete signature ritual for lifting, sculpting, glow, and deep renewal.",
+        "description": "The complete Glow Mission experience, designed for clients who want lifting, sculpting, radiance, and deep renewal through massage, gua sha, light therapy, cooling eye care, and a signature glow pack.",
+        "duration": "95 MINS",
+        "price_amount": 8999,
+        "price_note": "Hero ingredients: Saffron, Honey, Aloe Vera",
+        "inclusions": [
+            "Grounding Breathwork",
+            "Head & Feet Relaxation Touch",
+            "Gentle Skin Cleanse",
+            "Warm Steam Therapy",
+            "Glow Polish Exfoliation",
+            "Uplift & Relaxing Face Massage",
+            "Gua Sha Sculpt Massage",
+            "Glow-Boost Light Therapy",
+            "Cooling Eye Therapy",
+            "Signature Glow Pack",
+        ],
+        "ordering": 4,
+        "asset_candidates": ["glow-service-signature.webp", "glow-service-signature.png", "glow-gallery-massage-detail.webp"],
+    },
+]
+
+RITUAL_NAMES = [service["title"] for service in RITUAL_SERVICES]
+OLD_PLACEHOLDER_SERVICE_SLUGS = ["signature-glow-ritual", "face-yoga-lift", "natural-ingredient-facial"]
 
 
 class Command(BaseCommand):
@@ -27,6 +139,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.create_admin_user()
         brand = self.seed_brand()
+        self.seed_navigation()
         self.seed_pages()
         campaign = self.seed_campaign()
         self.seed_hero_slides(campaign)
@@ -84,9 +197,9 @@ class Command(BaseCommand):
         brand.save()
         return brand
 
-    def attach_seed_image(self, instance, field_name: str, filename: str | list[str], storage_name: str):
+    def attach_seed_image(self, instance, field_name: str, filename: str | list[str], storage_name: str, *, force: bool = False):
         field = getattr(instance, field_name)
-        if field:
+        if field and not force:
             ensure_image_variants(field)
             return
         filenames = filename if isinstance(filename, list) else [filename]
@@ -101,6 +214,28 @@ class Command(BaseCommand):
         with source.open("rb") as handle:
             field.save(storage_name, File(handle), save=False)
         ensure_image_variants(field)
+
+    def seed_navigation(self):
+        items = [
+            ("Home", "/", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 0),
+            ("Glow Rituals", "/glow-rituals", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 1),
+            ("About", "/about", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 2),
+            ("Gallery", "/gallery", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 3),
+            ("Contact", "/contact", SiteNavigationItem.Placement.HEADER, SiteNavigationItem.Style.LINK, 4),
+            ("Book", "/campaigns/glow-consultation", SiteNavigationItem.Placement.HEADER_CTA, SiteNavigationItem.Style.PRIMARY, 0),
+            ("Glow Rituals", "/glow-rituals", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 0),
+            ("About", "/about", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 1),
+            ("Gallery", "/gallery", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 2),
+            ("Contact", "/contact", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 3),
+            ("Book a consultation", "/campaigns/glow-consultation", SiteNavigationItem.Placement.FOOTER_CTA, SiteNavigationItem.Style.SECONDARY, 0),
+            ("Instagram", "https://instagram.com/theglowmission", SiteNavigationItem.Placement.SOCIAL, SiteNavigationItem.Style.LINK, 0),
+        ]
+        for label, url, placement, style, ordering in items:
+            SiteNavigationItem.objects.update_or_create(
+                label=label,
+                placement=placement,
+                defaults={"url": url, "style": style, "ordering": ordering, "active": True, "open_in_new_tab": url.startswith("http")},
+            )
 
     def seed_pages(self):
         pages = [
@@ -119,7 +254,7 @@ class Command(BaseCommand):
                     "status": Page.Status.PUBLISHED,
                     "ordering": ordering,
                     "seo_title": f"{title} | The Glow Mission",
-                    "seo_description": "Natural facial massage, face yoga, and glow rituals in a calm boutique spa setting.",
+                    "seo_description": "Luxury natural facial rituals, sculpting massage, botanical care, and deeply restful glow treatments at The Glow Mission.",
                 },
             )
 
@@ -128,8 +263,8 @@ class Command(BaseCommand):
             {
                 "section_type": PageSection.SectionType.HERO,
                 "title": "Natural facial rituals for a softer, calmer glow.",
-                "subtitle": "A premium spa wellness experience shaped by facial massage, face yoga, and botanical care.",
-                "body": "Come in for one peaceful hour. Leave feeling rested, lifted, and beautifully looked after.",
+                "subtitle": "A premium spa wellness experience shaped by facial massage, sculpting touch, and botanical care.",
+                "body": "Choose a 40 to 95 minute ritual and leave feeling rested, lifted, and beautifully looked after.",
                 "cta_label": "Book a consultation",
                 "cta_url": "/campaigns/glow-consultation",
                 "ordering": 0,
@@ -138,11 +273,12 @@ class Command(BaseCommand):
             {
                 "section_type": PageSection.SectionType.SERVICES,
                 "title": "Rituals designed around touch, tension, and visible radiance",
-                "subtitle": "Facial massage, face yoga, botanical textures, and slow care.",
-                "body": "Choose a session for glow, sculpting, natural ingredient care, or a seasonal offer. Every treatment can be edited from the CMS as the menu grows.",
-                "cta_label": "Explore services",
-                "cta_url": "/services",
+                "subtitle": "Sculpting massage, glow packs, botanical textures, and slow restorative care.",
+                "body": "Choose from five real glow rituals ranging from ₹3,599 to ₹8,999 and 40 to 95 minutes. Each treatment is shaped around your skin comfort, facial tension, and the way you want to feel when you leave.",
+                "cta_label": "Explore glow rituals",
+                "cta_url": "/glow-rituals",
                 "ordering": 1,
+                "eyebrow": "Glow Rituals",
             },
             {
                 "section_type": PageSection.SectionType.STORY,
@@ -152,7 +288,10 @@ class Command(BaseCommand):
                 "cta_label": "Read our story",
                 "cta_url": "/about",
                 "ordering": 2,
-                "asset_candidates": ["glow-about-story.webp", "glow-about-story.png"],
+                "eyebrow": "Founder-led care",
+                "media_alt": "Natural facial ritual tools prepared with oils, towels, and botanical textures",
+                "asset_candidates": ["glow-gallery-still-life.webp", "glow-gallery-warm-towel.webp"],
+                "force_asset": True,
             },
             {
                 "section_type": PageSection.SectionType.GALLERY,
@@ -162,10 +301,12 @@ class Command(BaseCommand):
                 "cta_label": "View gallery",
                 "cta_url": "/gallery",
                 "ordering": 3,
+                "eyebrow": "In the studio",
             },
         ]
         for section in sections:
             asset_candidates = section.pop("asset_candidates", None)
+            force_asset = section.pop("force_asset", False)
             item, _ = PageSection.objects.update_or_create(
                 page=home,
                 section_type=section["section_type"],
@@ -173,42 +314,150 @@ class Command(BaseCommand):
                 defaults=section,
             )
             if asset_candidates:
-                self.attach_seed_image(item, "media", asset_candidates, f"home-section-{item.ordering}.webp")
+                self.attach_seed_image(item, "media", asset_candidates, f"home-section-{item.ordering}.webp", force=force_asset)
                 item.save()
 
-        for slug in ["about", "services", "glow-rituals", "gallery", "contact"]:
-            page = Page.objects.get(slug=slug)
-            PageSection.objects.update_or_create(
-                page=page,
-                section_type=PageSection.SectionType.RICH_TEXT,
-                ordering=0,
-                defaults={
-                    "title": page.title,
-                    "subtitle": "Natural facial rituals, crafted with care.",
-                    "body": BRAND_STORY if slug == "about" else "Every detail is designed with softness, natural care, premium touch, and visible confidence in mind.",
-                    "active": True,
+        self.seed_page_sections()
+
+    def seed_page_sections(self):
+        page_sections = {
+            "about": [
+                {
+                    "section_type": PageSection.SectionType.HERO,
+                    "ordering": 0,
+                    "eyebrow": "Our story",
+                    "title": "A boutique ritual shaped by natural care, calm touch, and patient hands.",
+                    "subtitle": "The Glow Mission is founder-led in spirit: personal, warm, and built around one careful hour of facial wellness.",
+                    "body": BRAND_STORY,
+                    "cta_label": "Book a consultation",
+                    "cta_url": "/campaigns/glow-consultation",
+                    "media_alt": "Natural facial ritual tools arranged with oils, towels, and botanical textures",
+                    "asset_candidates": ["glow-gallery-still-life.webp", "glow-gallery-warm-towel.webp"],
+                    "force_asset": True,
                 },
-            )
+                {
+                    "section_type": PageSection.SectionType.RICH_TEXT,
+                    "ordering": 1,
+                    "eyebrow": "Why it feels different",
+                    "title": "A slower, softer approach to visible radiance.",
+                    "body": "The experience is intentionally hands-on and unhurried. Gentle massage, facial movement, natural textures, warm compresses, and attentive conversation come together to help your face feel lighter and your skin feel cared for.",
+                    "cta_label": "Explore glow rituals",
+                    "cta_url": "/glow-rituals",
+                },
+            ],
+            "glow-rituals": [
+                {
+                    "section_type": PageSection.SectionType.HERO,
+                    "ordering": 0,
+                    "eyebrow": "Glow Rituals",
+                    "title": "Choose the way you want to feel after one quiet ritual.",
+                    "subtitle": "Rested, lifted, brighter, softer, or simply cared for.",
+                    "body": "Each glow ritual is shaped around natural facial massage, sculpting touch, botanical textures, and your comfort on the day.",
+                    "cta_label": "Book a consultation",
+                    "cta_url": "/campaigns/glow-consultation",
+                    "media_alt": "Luxury facial massage ritual with warm spa lighting",
+                    "asset_candidates": ["glow-hero-signature.webp", "glow-hero-facial-massage.png"],
+                },
+                {
+                    "section_type": PageSection.SectionType.SERVICES,
+                    "ordering": 1,
+                    "eyebrow": "Treatment menu",
+                    "title": "Five natural facial rituals, priced clearly and easy to book.",
+                    "body": "Rituals range from ₹3,599 to ₹8,999 and 40 to 95 minutes, from a quick sculpting lift to the complete Glow Mission Signature.",
+                },
+                {
+                    "section_type": PageSection.SectionType.FAQS,
+                    "ordering": 2,
+                    "eyebrow": "Before you book",
+                    "title": "Questions before your first glow ritual",
+                    "subtitle": "Simple answers for choosing the right session.",
+                },
+            ],
+            "gallery": [
+                {
+                    "section_type": PageSection.SectionType.HERO,
+                    "ordering": 0,
+                    "eyebrow": "Gallery",
+                    "title": "The visual language of a slower glow ritual.",
+                    "subtitle": "Ivory linens, warm towels, botanical textures, and quiet treatment room details.",
+                    "body": "Every image is selected to feel like the ritual itself: warm, refined, natural, and deeply restful.",
+                },
+                {
+                    "section_type": PageSection.SectionType.GALLERY,
+                    "ordering": 1,
+                    "eyebrow": "In the studio",
+                    "title": "A calm look inside The Glow Mission",
+                    "body": "Browse the textures, treatment details, and quiet moments that shape the experience.",
+                },
+            ],
+            "contact": [
+                {
+                    "section_type": PageSection.SectionType.HERO,
+                    "ordering": 0,
+                    "eyebrow": "Contact",
+                    "title": "Begin with the ritual your skin is asking for.",
+                    "subtitle": "Tell us what you want to feel: rested, lifted, brighter, softer, or simply cared for.",
+                    "body": "We will guide you toward the right glow ritual, offer, or consultation based on your goals and comfort.",
+                    "cta_label": "Book a consultation",
+                    "cta_url": "/campaigns/glow-consultation",
+                    "media_alt": "Premium glow consultation setup with towels, oils, and natural spa tools",
+                    "asset_candidates": ["glow-consultation.webp", "glow-hero-offer.webp"],
+                },
+                {
+                    "section_type": PageSection.SectionType.RICH_TEXT,
+                    "ordering": 1,
+                    "layout_variant": "contact_details",
+                    "eyebrow": "Reach out",
+                    "title": "Tell us what your skin and face need next.",
+                    "body": "Share your goal, preferred time, and any sensitivities. The first conversation is calm, practical, and personal.",
+                },
+                {
+                    "section_type": PageSection.SectionType.CTA,
+                    "ordering": 2,
+                    "eyebrow": "Personal guidance",
+                    "title": "Not sure which glow ritual to choose?",
+                    "body": "Begin with a consultation request and share what your skin and face have been asking for. We will help you choose the calmest next step.",
+                    "cta_label": "Request my consultation",
+                    "cta_url": "/campaigns/glow-consultation",
+                },
+            ],
+        }
+
+        for slug, sections in page_sections.items():
+            page = Page.objects.get(slug=slug)
+            PageSection.objects.filter(page=page, section_type=PageSection.SectionType.RICH_TEXT, ordering=0, title=page.title).update(active=False)
+            for section in sections:
+                asset_candidates = section.pop("asset_candidates", None)
+                force_asset = section.pop("force_asset", False)
+                item, _ = PageSection.objects.update_or_create(
+                    page=page,
+                    section_type=section["section_type"],
+                    ordering=section["ordering"],
+                    defaults={**section, "active": True},
+                )
+                if asset_candidates:
+                    self.attach_seed_image(item, "media", asset_candidates, f"{slug}-section-{item.ordering}.webp", force=force_asset)
+                    item.save()
 
     def seed_hero_slides(self, campaign: CampaignForm):
         slides = [
             {
                 "title": "Natural facial rituals for a softer, calmer glow.",
-                "subtitle": "Facial massage, face yoga, and botanical care in one peaceful hour.",
+                "subtitle": "Facial massage, sculpting touch, and botanical care from 40 to 95 minutes.",
                 "body": "A luxury spa wellness experience for rested skin, softened tension, and quiet confidence.",
                 "offer_label": "Signature consultation",
                 "primary_cta_label": "Book a consultation",
                 "primary_cta_url": f"/campaigns/{campaign.slug}",
                 "secondary_cta_label": "Explore rituals",
-                "secondary_cta_url": "/services",
+                "secondary_cta_url": "/glow-rituals",
                 "ordering": 0,
                 "image_alt": "Luxury facial massage ritual in a calm boutique spa setting",
                 "asset_candidates": ["glow-hero-signature.webp", "glow-hero-facial-massage.png", "glow-mission-post-1.png"],
             },
             {
                 "title": "Limited free glow sessions for new clients.",
-                "subtitle": "Create a campaign in the CMS and place it directly on this carousel.",
-                "body": "Use this space for seasonal offers, free consultations, launch giveaways, and treatment trials.",
+                "subtitle": "A soft launch invitation for first-time clients who want to experience natural facial care.",
+                "body": "Claim a consultation-led glow session and discover the ritual that suits your skin, tension, and pace.",
                 "offer_label": "Launch offer",
                 "primary_cta_label": "Claim the offer",
                 "primary_cta_url": f"/campaigns/{campaign.slug}",
@@ -219,16 +468,16 @@ class Command(BaseCommand):
                 "asset_candidates": ["glow-hero-offer.webp", "glow-hero-offer.png", "glow-mission-post-1.png"],
             },
             {
-                "title": "A quieter lift through face yoga and touch.",
-                "subtitle": "Gentle facial movement, jaw release, and massage for a rested natural contour.",
-                "body": "Choose a hands-on ritual designed to soften tension and make your face feel lighter.",
-                "offer_label": "Face yoga lift",
-                "primary_cta_label": "Book face yoga",
+                "title": "A sculpted lift in 40 calm minutes.",
+                "subtitle": "The Face Lift Ritual refreshes tired skin with restorative massage, gua sha, and cooling therapy.",
+                "body": "A focused sculpting ritual for a lifted, energised look when your face needs a quick reset.",
+                "offer_label": "The Face Lift Ritual",
+                "primary_cta_label": "Book the ritual",
                 "primary_cta_url": f"/campaigns/{campaign.slug}",
                 "secondary_cta_label": "View ritual menu",
                 "secondary_cta_url": "/glow-rituals",
                 "ordering": 2,
-                "image_alt": "Face yoga lift ritual in a calm boutique spa setting",
+                "image_alt": "The Face Lift Ritual in a calm boutique spa setting",
                 "asset_candidates": ["glow-hero-face-yoga.webp", "glow-service-face-yoga.png", "glow-mission-post-1.png"],
             },
         ]
@@ -236,91 +485,49 @@ class Command(BaseCommand):
             asset_candidates = slide.pop("asset_candidates")
             item, _ = HeroSlide.objects.update_or_create(
                 ordering=slide["ordering"],
-                defaults={**slide, "active": True, "linked_campaign": campaign},
+                defaults={**slide, "active": True, "linked_campaign": campaign, "schedule_enabled": False, "starts_at": None, "ends_at": None},
             )
             self.attach_seed_image(item, "image", asset_candidates, f"hero-slide-{item.ordering}.png")
             item.save()
 
     def seed_services(self, campaign: CampaignForm):
-        services = [
-            {
-                "title": "Signature Glow Ritual",
-                "slug": "signature-glow-ritual",
-                "short_description": "A complete one-hour facial massage ritual for rested, brighter-looking skin.",
-                "description": "Slow cleansing, botanical textures, lymphatic-inspired massage, lifting strokes, and a calming finish for skin that feels cared for without harshness.",
-                "duration": "60 minutes",
-                "session_count": 1,
-                "price_amount": 2500,
-                "sale_price_amount": 1999,
-                "discount_label": "Introductory glow price",
-                "price_note": "Best for first-time glow clients",
-                "inclusions": ["Gentle cleanse", "Facial massage", "Botanical mask", "Glow finish"],
-                "featured": True,
-                "ordering": 0,
-                "asset_candidates": ["glow-service-signature.webp", "glow-service-signature.png", "glow-mission-post-1.png"],
-            },
-            {
-                "title": "Face Yoga Lift",
-                "slug": "face-yoga-lift",
-                "short_description": "Guided facial movement and lifting massage to soften tension and support natural contour.",
-                "description": "A sculpting-focused session for facial tightness, tired expressions, jaw tension, and a more awake look.",
-                "duration": "45 minutes",
-                "session_count": 1,
-                "price_amount": 1800,
-                "sale_price_amount": None,
-                "discount_label": "",
-                "price_note": "Available as a standalone ritual or add-on",
-                "inclusions": ["Guided face yoga", "Jaw and cheek release", "Lifting massage", "At-home practice tips"],
-                "featured": False,
-                "ordering": 1,
-                "asset_candidates": ["glow-service-face-yoga.webp", "glow-service-face-yoga.png", "glow-mission-post-1.png"],
-            },
-            {
-                "title": "Natural Ingredient Facial",
-                "slug": "natural-ingredient-facial",
-                "short_description": "A sensory botanical facial inspired by honey, cucumber, citrus, herbs, and soft cream textures.",
-                "description": "A gentle seasonal ritual for dullness, dryness, and anyone who wants a natural, comforting facial experience.",
-                "duration": "60 minutes",
-                "session_count": 1,
-                "price_amount": 2200,
-                "sale_price_amount": None,
-                "discount_label": "Seasonal ritual",
-                "price_note": "Ingredients vary by season and skin comfort",
-                "inclusions": ["Ingredient consultation", "Botanical mask", "Cooling compress", "Hydrating finish"],
-                "featured": False,
-                "ordering": 2,
-                "asset_candidates": ["glow-service-natural-facial.webp", "glow-service-natural-facial.png", "glow-mission-post-1.png"],
-            },
-        ]
-        for service in services:
-            asset_candidates = service.pop("asset_candidates")
+        Service.objects.filter(slug__in=OLD_PLACEHOLDER_SERVICE_SLUGS).update(active=False)
+
+        for service in RITUAL_SERVICES:
+            asset_candidates = service["asset_candidates"]
+            service_data = {key: value for key, value in service.items() if key != "asset_candidates"}
             item, _ = Service.objects.update_or_create(
                 slug=service["slug"],
                 defaults={
-                    **service,
+                    **service_data,
                     "image_alt": f"{service['title']} treatment at The Glow Mission",
                     "currency": "INR",
+                    "sale_price_amount": None,
+                    "discount_label": "",
+                    "featured": False,
+                    "session_count": 1,
                     "cta_label": "Book this ritual",
                     "cta_url": f"/campaigns/{campaign.slug}",
                     "booking_campaign": campaign,
                     "active": True,
                 },
             )
-            self.attach_seed_image(item, "image", asset_candidates, f"{item.slug}.png")
+            self.attach_seed_image(item, "image", asset_candidates, f"{item.slug}.webp")
             item.save()
 
     def seed_supporting_content(self):
         faqs = [
-            ("What is The Glow Mission?", "The Glow Mission is a boutique facial wellness studio focused on natural facial massage, face yoga, botanical textures, and slow restorative care."),
-            ("How long is a session?", "Most signature rituals are 45 to 60 minutes. The CMS service menu can be updated as new treatment lengths are added."),
+            ("What is The Glow Mission?", "The Glow Mission is a boutique facial wellness studio focused on natural facial massage, sculpting touch, botanical textures, glow packs, and slow restorative care."),
+            ("How long is a session?", "Glow rituals range from 40 to 95 minutes, with enough time for calm preparation, skin work, massage, and a slow finish."),
             ("Is this a medical facial?", "No. The Glow Mission is a wellness and beauty ritual experience, not a medical dermatology service or clinical skin procedure."),
-            ("What should I book for my first visit?", "The Signature Glow Ritual is the best first session because it combines consultation, massage, botanical care, and a calm glow finish."),
-            ("Can I book a free session offer?", "Yes. When a free session campaign is active, it appears on the homepage carousel and has its own campaign form."),
+            ("What should I book for my first visit?", "If you want a quick sculpting reset, choose The Face Lift Ritual. If you want the complete experience, choose The Glow Mission Signature."),
+            ("Can I book a launch offer or free session?", "Yes. When a launch offer is available, you can request it through the featured consultation form and we will confirm availability."),
             ("Do you use harsh peels or machines?", "The current approach is hands-on and gentle: massage, facial movement, natural textures, compresses, and calming skin care."),
-            ("Can prices or discounts change?", "Yes. Services have structured pricing and offer fields in the CMS, so prices, sale prices, and discount labels can be changed anytime."),
+            ("What do the rituals cost?", "The current ritual menu ranges from ₹3,599 to ₹8,999, depending on duration, flow, and depth of care."),
+            ("Can prices or offers change?", "Yes. Seasonal rituals, introductory prices, and limited offers may change over time. The current ritual menu will show the latest available details."),
             ("Can I choose a treatment later?", "Yes. You can submit a consultation form first and choose the right ritual after discussing your goals and comfort level."),
             ("What skin concerns can I mention?", "You can mention dullness, dryness, tension, puffiness, uneven texture, fatigue, or simply that you want a calmer glow."),
-            ("How do campaign forms work?", "Each campaign can have custom fields, active dates, success copy, and response export from the admin CMS."),
+            ("What happens after I submit a consultation request?", "Your request is reviewed and you will be guided toward the ritual, time, or offer that best fits your skin goals and schedule."),
             ("Will my treatment be customized?", "Every session should be adjusted around comfort, skin feel, time, and the kind of result you want from that visit."),
             ("How should I prepare?", "Arrive with minimal makeup if possible, share any sensitivities, and give yourself a little time after the session before rushing back into the day."),
         ]
@@ -328,12 +535,16 @@ class Command(BaseCommand):
             FAQ.objects.update_or_create(question=question, defaults={"answer": answer, "active": True, "ordering": ordering})
 
         testimonials = [
-            ("A softer kind of glow", "The ritual felt calm and personal. My skin looked rested and my face felt lighter.", "First glow client"),
-            ("Care you can feel", "The whole experience felt gentle, intentional, and beautifully put together.", "Glow client"),
-            ("The pause I needed", "It felt like a beauty treatment and a reset at the same time. The massage was the best part.", "Wellness client"),
+            ("Anonymous client note", "The ritual felt calm and personal. My skin looked rested and my face felt lighter.", "First glow ritual"),
+            ("Anonymous client note", "The whole experience felt gentle, intentional, and beautifully put together.", "Glow ritual feedback"),
+            ("Anonymous client note", "It felt like a beauty treatment and a reset at the same time. The massage was the best part.", "Wellness feedback"),
         ]
+        Testimonial.objects.filter(name__in=["A softer kind of glow", "Care you can feel", "The pause I needed"]).update(active=False)
         for ordering, (name, quote, role) in enumerate(testimonials):
-            Testimonial.objects.update_or_create(name=name, defaults={"quote": quote, "role": role, "active": True, "ordering": ordering})
+            Testimonial.objects.update_or_create(
+                name=f"{name} {ordering + 1}",
+                defaults={"quote": quote, "role": role, "is_anonymized": True, "active": True, "ordering": ordering},
+            )
 
         gallery_items = [
             ("Treatment room calm", "Prepared boutique spa treatment bed with ivory linens", "A quiet room prepared for slow facial care.", 0, ["glow-gallery-treatment-room.webp", "glow-about-story.png"]),
@@ -360,6 +571,13 @@ class Command(BaseCommand):
                 "summary": "Tell us what you would love your skin and face to feel like. We will help you choose the right ritual or offer.",
                 "offer_label": "New client consultation",
                 "button_label": "Request my consultation",
+                "submitting_label": "Sending your request...",
+                "empty_select_label": "Choose a glow ritual",
+                "checkbox_label": "Yes, this feels right",
+                "error_message": "Please check the highlighted fields and try again.",
+                "schedule_enabled": False,
+                "starts_at": None,
+                "ends_at": None,
                 "success_message": "Thank you. Your glow consultation request has been received.",
                 "seo_title": "Book a Glow Consultation | The Glow Mission",
                 "seo_description": "Tell us about your skin and preferred glow ritual.",
@@ -385,7 +603,7 @@ class Command(BaseCommand):
                     "field_type": field_type,
                     "placeholder": placeholder,
                     "required": required,
-                    "options": ["Signature Glow Ritual", "Face Yoga Lift", "Natural Ingredient Facial"] if key == "preferred_ritual" else [],
+                    "options": RITUAL_NAMES if key == "preferred_ritual" else [],
                     "ordering": ordering,
                     "active": True,
                 },

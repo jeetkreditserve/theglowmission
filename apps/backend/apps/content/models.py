@@ -85,6 +85,7 @@ class HeroSlide(TimeStampedModel):
         blank=True,
         null=True,
     )
+    schedule_enabled = models.BooleanField(default=False)
     starts_at = models.DateTimeField(blank=True, null=True)
     ends_at = models.DateTimeField(blank=True, null=True)
     active = models.BooleanField(default=True)
@@ -99,6 +100,8 @@ class HeroSlide(TimeStampedModel):
         now = timezone.now()
         if not self.active:
             return False
+        if not self.schedule_enabled:
+            return True
         if self.starts_at and self.starts_at > now:
             return False
         if self.ends_at and self.ends_at < now:
@@ -116,7 +119,7 @@ class Page(TimeStampedModel):
         ARCHIVED = "archived", "Archived"
 
     title = models.CharField(max_length=180)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     seo_title = models.CharField(max_length=180, blank=True)
     seo_description = models.TextField(blank=True)
@@ -147,12 +150,20 @@ class PageSection(TimeStampedModel):
 
     page = models.ForeignKey(Page, related_name="sections", on_delete=models.CASCADE)
     section_type = models.CharField(max_length=40, choices=SectionType.choices)
+    eyebrow = models.CharField(max_length=140, blank=True)
     title = models.CharField(max_length=220, blank=True)
     subtitle = models.CharField(max_length=260, blank=True)
     body = models.TextField(blank=True)
     media = models.ImageField(upload_to="page-sections/", blank=True, null=True)
+    media_alt = models.CharField(max_length=220, blank=True)
     cta_label = models.CharField(max_length=120, blank=True)
     cta_url = models.CharField(max_length=240, blank=True)
+    cta_style = models.CharField(max_length=40, blank=True)
+    secondary_cta_label = models.CharField(max_length=120, blank=True)
+    secondary_cta_url = models.CharField(max_length=240, blank=True)
+    secondary_cta_style = models.CharField(max_length=40, blank=True)
+    layout_variant = models.CharField(max_length=80, blank=True)
+    background_variant = models.CharField(max_length=80, blank=True)
     ordering = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
     config = models.JSONField(default=dict, blank=True)
@@ -166,7 +177,7 @@ class PageSection(TimeStampedModel):
 
 class Service(TimeStampedModel):
     title = models.CharField(max_length=180)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     short_description = models.CharField(max_length=260)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to="services/", blank=True, null=True)
@@ -208,6 +219,7 @@ class Testimonial(TimeStampedModel):
     name = models.CharField(max_length=160)
     quote = models.TextField()
     role = models.CharField(max_length=120, blank=True)
+    is_anonymized = models.BooleanField(default=True)
     active = models.BooleanField(default=True)
     ordering = models.PositiveIntegerField(default=0)
 
@@ -257,3 +269,33 @@ class MediaAsset(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.title
+
+
+class SiteNavigationItem(TimeStampedModel):
+    class Placement(models.TextChoices):
+        HEADER = "header", "Header navigation"
+        HEADER_CTA = "header_cta", "Header CTA"
+        FOOTER = "footer", "Footer navigation"
+        FOOTER_CTA = "footer_cta", "Footer CTA"
+        FOOTER_CONTACT = "footer_contact", "Footer contact"
+        SOCIAL = "social", "Social link"
+
+    class Style(models.TextChoices):
+        LINK = "link", "Link"
+        PRIMARY = "primary", "Primary button"
+        SECONDARY = "secondary", "Secondary button"
+        MUTED = "muted", "Muted"
+
+    label = models.CharField(max_length=120)
+    url = models.CharField(max_length=240)
+    placement = models.CharField(max_length=32, choices=Placement.choices, default=Placement.HEADER)
+    style = models.CharField(max_length=32, choices=Style.choices, default=Style.LINK)
+    open_in_new_tab = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
+    ordering = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["placement", "ordering", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.get_placement_display()}: {self.label}"

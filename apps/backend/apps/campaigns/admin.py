@@ -10,8 +10,8 @@ class CampaignFormFieldInline(admin.TabularInline):
 
 @admin.register(CampaignForm)
 class CampaignFormAdmin(admin.ModelAdmin):
-    list_display = ["title", "slug", "status", "starts_at", "ends_at", "updated_at"]
-    list_filter = ["status"]
+    list_display = ["title", "slug", "status", "schedule_enabled", "starts_at", "ends_at", "updated_at"]
+    list_filter = ["status", "schedule_enabled"]
     prepopulated_fields = {"slug": ("title",)}
     inlines = [CampaignFormFieldInline]
 
@@ -20,4 +20,3 @@ class CampaignFormAdmin(admin.ModelAdmin):
 class CampaignFormResponseAdmin(admin.ModelAdmin):
     list_display = ["form", "submitted_at"]
     readonly_fields = ["submitted_at", "response_data", "metadata", "field_snapshot"]
-

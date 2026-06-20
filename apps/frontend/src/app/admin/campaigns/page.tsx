@@ -15,6 +15,11 @@ type Campaign = {
   hero_image_url: string | null;
   hero_image_alt: string;
   button_label: string;
+  submitting_label: string;
+  empty_select_label: string;
+  checkbox_label: string;
+  error_message: string;
+  schedule_enabled: boolean;
   starts_at: string | null;
   ends_at: string | null;
   success_message: string;
@@ -41,6 +46,11 @@ export default function AdminCampaignsPage() {
           offer_label: "",
           hero_image_alt: "",
           button_label: "Submit request",
+          submitting_label: "Sending your request...",
+          empty_select_label: "Choose a glow ritual",
+          checkbox_label: "Yes",
+          error_message: "Please check the highlighted fields and try again.",
+          schedule_enabled: false,
           starts_at: null,
           ends_at: null,
           success_message: "Thank you. We will get back to you soon.",
@@ -74,8 +84,13 @@ export default function AdminCampaignsPage() {
           { name: "hero_image", label: "Hero image", type: "image", span: "full" },
           { name: "hero_image_alt", label: "Hero image alt text", span: "full" },
           { name: "button_label", label: "Submit button label" },
-          { name: "starts_at", label: "Starts at", type: "datetime" },
-          { name: "ends_at", label: "Ends at", type: "datetime" },
+          { name: "submitting_label", label: "Submitting label" },
+          { name: "empty_select_label", label: "Empty select label" },
+          { name: "checkbox_label", label: "Checkbox label" },
+          { name: "error_message", label: "Error message", type: "textarea", span: "full" },
+          { name: "schedule_enabled", label: "Enable scheduling", type: "checkbox", span: "full", help: "Only turn this on when the campaign should accept responses within a date window." },
+          { name: "starts_at", label: "Starts at", type: "datetime", help: "Optional unless scheduling is enabled." },
+          { name: "ends_at", label: "Ends at", type: "datetime", help: "Optional unless scheduling is enabled." },
           { name: "success_message", label: "Success message", type: "textarea", span: "full" },
           { name: "redirect_url", label: "Redirect URL" },
           { name: "seo_title", label: "SEO title", span: "full" },

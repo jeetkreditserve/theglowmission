@@ -8,6 +8,7 @@ type TestimonialItem = {
   name: string;
   quote: string;
   role: string;
+  is_anonymized: boolean;
   active: boolean;
   ordering: number;
 };
@@ -20,10 +21,11 @@ export default function AdminTestimonialsPage() {
         title="Testimonials"
         itemLabel="testimonial"
         createLabel="New testimonial"
-        defaults={{ name: "", quote: "", role: "", active: true, ordering: 0 }}
+        defaults={{ name: "", quote: "", role: "", is_anonymized: true, active: true, ordering: 0 }}
         columns={[
           { label: "Name", value: (item) => item.name },
           { label: "Role", value: (item) => item.role || "-" },
+          { label: "Anonymized", value: (item) => (item.is_anonymized ? "Yes" : "No") },
           { label: "Active", value: (item) => (item.active ? "Yes" : "No") },
           { label: "Order", value: (item) => item.ordering }
         ]}
@@ -31,6 +33,7 @@ export default function AdminTestimonialsPage() {
           { name: "name", label: "Name" },
           { name: "role", label: "Role" },
           { name: "quote", label: "Quote", type: "textarea", span: "full" },
+          { name: "is_anonymized", label: "Show as anonymized client note", type: "checkbox", span: "full" },
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }
         ]}

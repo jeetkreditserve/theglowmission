@@ -41,7 +41,7 @@ export default function AdminServicesPage() {
           short_description: "",
           description: "",
           image_alt: "",
-          duration: "60 minutes",
+          duration: "40 MINS",
           session_count: 1,
           currency: "INR",
           price_amount: null,
@@ -83,7 +83,7 @@ export default function AdminServicesPage() {
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }
         ]}
-        getPreviewHref={() => "/services"}
+        getPreviewHref={() => "/glow-rituals"}
       />
     </AdminShell>
   );

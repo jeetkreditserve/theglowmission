@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Pencil, Plus, RefreshCcw, Save, Trash2, Upload, X } from "lucide-react";
-import { adminFetch } from "@/lib/api";
+import { useAdminToast } from "@/components/admin/AdminToasts";
+import { ApiError, adminFetch, flattenApiErrors, formatApiError } from "@/lib/api";
 
 type ApiList<T> = T[] | { results: T[] };
 
@@ -39,6 +40,7 @@ function fieldValue(value: unknown): string {
 function parseFieldValue(type: FieldType, value: unknown) {
   if (type === "checkbox") return Boolean(value);
   if (type === "number") return value === "" || value === null || value === undefined ? null : Number(value);
+  if (type === "datetime") return value === "" || value === null || value === undefined ? null : value;
   if (type === "jsonList") {
     if (Array.isArray(value)) return value;
     return String(value || "")
@@ -52,7 +54,7 @@ function parseFieldValue(type: FieldType, value: unknown) {
     try {
       return JSON.parse(value);
     } catch {
-      return {};
+      throw new Error("Enter valid JSON.");
     }
   }
   return value ?? "";
@@ -88,22 +90,29 @@ export function AdminResourceManager<T extends { id: number }>({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
+  const toast = useAdminToast();
 
   const listPath = useMemo(() => (queryKey ? `${path}?${queryKey}` : path), [path, queryKey]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setStatus("");
+    setFormError("");
     try {
       const data = await adminFetch<ApiList<T>>(listPath);
       setItems(unwrap(data));
     } catch (error) {
-      setStatus(error instanceof Error && error.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Unable to load data.");
+      const message = error instanceof Error && error.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Unable to load data.";
+      setStatus(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [listPath]);
+  }, [listPath, toast]);
 
   useEffect(() => {
     load();
@@ -113,6 +122,8 @@ export function AdminResourceManager<T extends { id: number }>({
     setEditingId(null);
     setDraft(defaults);
     setFiles({});
+    setFieldErrors({});
+    setFormError("");
     setStatus("");
   }
 
@@ -120,6 +131,8 @@ export function AdminResourceManager<T extends { id: number }>({
     setEditingId(item.id);
     setDraft(item);
     setFiles({});
+    setFieldErrors({});
+    setFormError("");
     setStatus("");
   }
 
@@ -127,6 +140,8 @@ export function AdminResourceManager<T extends { id: number }>({
     setDraft(null);
     setEditingId(null);
     setFiles({});
+    setFieldErrors({});
+    setFormError("");
   }
 
   function updateField(name: string, value: unknown) {
@@ -135,19 +150,32 @@ export function AdminResourceManager<T extends { id: number }>({
 
   async function save() {
     if (!draft) return;
+    if (saving) return;
     setStatus("Saving...");
+    setSaving(true);
+    setFieldErrors({});
+    setFormError("");
     const payload: Record<string, unknown> = {};
     let hasFile = false;
 
-    fields.forEach((field) => {
-      if (field.readOnly) return;
-      if (field.type === "image") {
-        if (files[field.name]) hasFile = true;
-        return;
-      }
-      const type = field.type || "text";
-      payload[field.name] = parseFieldValue(type, draft[field.name as keyof T]);
-    });
+    try {
+      fields.forEach((field) => {
+        if (field.readOnly) return;
+        if (field.type === "image") {
+          if (files[field.name]) hasFile = true;
+          return;
+        }
+        const type = field.type || "text";
+        payload[field.name] = parseFieldValue(type, draft[field.name as keyof T]);
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to prepare this form.";
+      setFormError(message);
+      toast.error(message);
+      setStatus("");
+      setSaving(false);
+      return;
+    }
 
     const finalPayload = transformPayload ? transformPayload(payload) : payload;
     const method = editingId ? "PATCH" : "POST";
@@ -156,7 +184,11 @@ export function AdminResourceManager<T extends { id: number }>({
 
     if (body instanceof FormData) {
       Object.entries(finalPayload).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
+        if (value === undefined) return;
+        if (value === null) {
+          body.append(key, "");
+          return;
+        }
         body.append(key, typeof value === "object" ? JSON.stringify(value) : String(value));
       });
       fields.forEach((field) => {
@@ -169,10 +201,19 @@ export function AdminResourceManager<T extends { id: number }>({
     try {
       await adminFetch<T>(requestPath, { method, body });
       setStatus("Saved.");
+      toast.success(`${capitalize(itemLabel)} saved.`);
       cancel();
       await load();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to save.");
+      const message = error instanceof Error ? error.message : "Unable to save.";
+      setStatus("");
+      setFormError(message);
+      if (error instanceof ApiError) {
+        setFieldErrors(flattenApiErrors(error.data));
+      }
+      toast.error(message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -180,12 +221,17 @@ export function AdminResourceManager<T extends { id: number }>({
     const confirmed = window.confirm(`Delete this ${itemLabel}?`);
     if (!confirmed) return;
     setStatus("Deleting...");
+    setFormError("");
     try {
       await adminFetch<void>(`${path}${item.id}/`, { method: "DELETE" });
       setStatus("Deleted.");
+      toast.success(`${capitalize(itemLabel)} deleted.`);
       await load();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to delete.");
+      const message = error instanceof ApiError ? formatApiError(error.data, "Unable to delete.") : error instanceof Error ? error.message : "Unable to delete.";
+      setStatus("");
+      setFormError(message);
+      toast.error(message);
     }
   }
 
@@ -195,6 +241,7 @@ export function AdminResourceManager<T extends { id: number }>({
         <div>
           <h2 className="font-display text-3xl text-espresso">{title}</h2>
           {status && <p className="mt-2 text-sm text-espresso/62">{status}</p>}
+          {formError && <div className="mt-3 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>}
         </div>
         <div className="flex gap-3">
           <button onClick={load} className="admin-button-secondary" type="button">
@@ -222,15 +269,17 @@ export function AdminResourceManager<T extends { id: number }>({
                 key={field.name}
                 field={field}
                 draft={draft}
+                files={files}
+                error={fieldErrors[field.name]}
                 onChange={updateField}
                 onFile={(file) => setFiles((current) => ({ ...current, [field.name]: file }))}
               />
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button onClick={save} type="button" className="admin-button">
+            <button onClick={save} disabled={saving} type="button" className="admin-button disabled:cursor-not-allowed disabled:opacity-55">
               <Save size={16} />
-              Save
+              {saving ? "Saving..." : "Save"}
             </button>
             <button onClick={cancel} type="button" className="admin-button-secondary">
               Cancel
@@ -257,6 +306,13 @@ export function AdminResourceManager<T extends { id: number }>({
                 <tr>
                   <td className="px-5 py-8 text-espresso/55" colSpan={columns.length + 1}>
                     Loading {title.toLowerCase()}...
+                  </td>
+                </tr>
+              )}
+              {!loading && !items.length && (
+                <tr>
+                  <td className="px-5 py-8 text-espresso/55" colSpan={columns.length + 1}>
+                    No {title.toLowerCase()} found.
                   </td>
                 </tr>
               )}
@@ -305,17 +361,23 @@ export function AdminResourceManager<T extends { id: number }>({
 function FieldInput<T>({
   field,
   draft,
+  files,
+  error,
   onChange,
   onFile
 }: {
   field: FieldConfig<T>;
   draft: Partial<T>;
+  files: Record<string, File | null>;
+  error?: string;
   onChange: (name: string, value: unknown) => void;
   onFile: (file: File | null) => void;
 }) {
   const type = field.type || "text";
   const value = draft[field.name as keyof T];
   const wrapperClass = field.span === "full" || ["textarea", "json", "jsonList", "image"].includes(type) ? "md:col-span-2" : "";
+  const selectedFile = files[field.name];
+  const imagePreviewUrl = type === "image" ? previewUrlForField(field.name, draft) : "";
   const label = (
     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/58">
       {field.label}
@@ -325,10 +387,13 @@ function FieldInput<T>({
 
   if (type === "checkbox") {
     return (
-      <label className={`flex items-center gap-3 ${wrapperClass}`}>
-        <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(field.name, event.target.checked)} className="h-5 w-5 accent-champagne" />
-        {label}
-      </label>
+      <div className={wrapperClass}>
+        <label className="flex items-center gap-3">
+          <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(field.name, event.target.checked)} className="h-5 w-5 accent-champagne" />
+          {label}
+        </label>
+        <FieldHelp help={field.help} error={error} />
+      </div>
     );
   }
 
@@ -344,7 +409,7 @@ function FieldInput<T>({
             </option>
           ))}
         </select>
-        {field.help && <span className="mt-2 block text-xs text-espresso/50">{field.help}</span>}
+        <FieldHelp help={field.help} error={error} />
       </label>
     );
   }
@@ -360,22 +425,33 @@ function FieldInput<T>({
           className="admin-input mt-2 min-h-32"
           disabled={field.readOnly}
         />
-        {field.help && <span className="mt-2 block text-xs text-espresso/50">{field.help}</span>}
+        <FieldHelp help={field.help} error={error} />
       </label>
     );
   }
 
   if (type === "image") {
     return (
-      <label className={wrapperClass}>
-        {label}
-        <span className="mt-2 flex min-h-28 items-center justify-center border border-dashed border-champagne/45 bg-white/55 px-4 py-5 text-sm text-espresso/60">
-          <Upload size={17} className="mr-2" />
-          Upload or replace image
-          <input type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0] || null)} className="sr-only" />
-        </span>
-        {field.help && <span className="mt-2 block text-xs text-espresso/50">{field.help}</span>}
-      </label>
+      <div className={wrapperClass}>
+        <label>
+          {label}
+          <span className="mt-2 flex min-h-28 items-center justify-center border border-dashed border-champagne/45 bg-white/55 px-4 py-5 text-sm text-espresso/60">
+            <Upload size={17} className="mr-2" />
+            {selectedFile ? selectedFile.name : "Upload or replace image"}
+            <input type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0] || null)} className="sr-only" />
+          </span>
+        </label>
+        {imagePreviewUrl && (
+          <div className="mt-3 flex items-center gap-4 border border-champagne/20 bg-white/50 p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imagePreviewUrl} alt="" className="h-20 w-20 object-cover" />
+            <a href={imagePreviewUrl} target="_blank" className="text-sm font-semibold text-espresso underline underline-offset-4">
+              View current image
+            </a>
+          </div>
+        )}
+        <FieldHelp help={field.help} error={error} />
+      </div>
     );
   }
 
@@ -383,14 +459,53 @@ function FieldInput<T>({
     <label className={wrapperClass}>
       {label}
       <input
-        value={fieldValue(value)}
+        value={type === "datetime" ? datetimeInputValue(value) : fieldValue(value)}
         onChange={(event) => onChange(field.name, event.target.value)}
         placeholder={field.placeholder}
         type={type === "datetime" ? "datetime-local" : type}
         className="admin-input mt-2"
         disabled={field.readOnly}
       />
-      {field.help && <span className="mt-2 block text-xs text-espresso/50">{field.help}</span>}
+      <FieldHelp help={field.help} error={error} />
     </label>
   );
+}
+
+function FieldHelp({ help, error }: { help?: string; error?: string }) {
+  return (
+    <>
+      {help && <span className="mt-2 block text-xs text-espresso/50">{help}</span>}
+      {error && <span className="mt-2 block text-sm font-semibold text-red-700">{error}</span>}
+    </>
+  );
+}
+
+function previewUrlForField<T>(name: string, draft: Partial<T>) {
+  const record = draft as Record<string, unknown>;
+  const candidates = [
+    `${name}_url`,
+    name.replace(/_image$/, "_url"),
+    name === "logo_image" ? "logo_url" : "",
+    name === "favicon" ? "favicon_url" : "",
+    name === "media" ? "media_url" : "",
+    name === "file" ? "file_url" : ""
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    const value = record[candidate];
+    if (typeof value === "string" && value) return value;
+  }
+  return "";
+}
+
+function datetimeInputValue(value: unknown) {
+  const raw = fieldValue(value);
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw.slice(0, 16);
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

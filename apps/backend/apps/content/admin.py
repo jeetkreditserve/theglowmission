@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, ImageVariant, MediaAsset, Page, PageSection, Service, Testimonial
+from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, ImageVariant, MediaAsset, Page, PageSection, Service, SiteNavigationItem, Testimonial
 
 
 class PageSectionInline(admin.TabularInline):
@@ -30,8 +30,8 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(HeroSlide)
 class HeroSlideAdmin(admin.ModelAdmin):
-    list_display = ["title", "offer_label", "active", "ordering", "starts_at", "ends_at"]
-    list_filter = ["active"]
+    list_display = ["title", "offer_label", "active", "schedule_enabled", "ordering", "starts_at", "ends_at"]
+    list_filter = ["active", "schedule_enabled"]
 
 
 @admin.register(ImageVariant)
@@ -46,3 +46,9 @@ admin.site.register(Testimonial)
 admin.site.register(FAQ)
 admin.site.register(GalleryImage)
 admin.site.register(MediaAsset)
+
+
+@admin.register(SiteNavigationItem)
+class SiteNavigationItemAdmin(admin.ModelAdmin):
+    list_display = ["label", "placement", "style", "active", "ordering", "updated_at"]
+    list_filter = ["placement", "style", "active"]

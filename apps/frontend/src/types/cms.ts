@@ -45,13 +45,21 @@ export type BrandSettings = {
 export type PageSection = {
   id: number;
   section_type: "hero" | "story" | "services" | "gallery" | "testimonials" | "faqs" | "cta" | "rich_text";
+  eyebrow: string;
   title: string;
   subtitle: string;
   body: string;
   media_url: string | null;
   media_variants?: ImageVariantSet;
+  media_alt: string;
   cta_label: string;
   cta_url: string;
+  cta_style: string;
+  secondary_cta_label: string;
+  secondary_cta_url: string;
+  secondary_cta_style: string;
+  layout_variant: string;
+  background_variant: string;
   ordering: number;
   active: boolean;
   config: Record<string, unknown>;
@@ -73,6 +81,7 @@ export type HeroSlide = {
   linked_campaign: number | null;
   campaign_slug: string;
   campaign_title: string;
+  schedule_enabled: boolean;
   starts_at: string | null;
   ends_at: string | null;
   active: boolean;
@@ -142,6 +151,18 @@ export type Testimonial = {
   name: string;
   quote: string;
   role: string;
+  is_anonymized: boolean;
+  active: boolean;
+  ordering: number;
+};
+
+export type SiteNavigationItem = {
+  id: number;
+  label: string;
+  url: string;
+  placement: "header" | "header_cta" | "footer" | "footer_cta" | "footer_contact" | "social";
+  style: "link" | "primary" | "secondary" | "muted";
+  open_in_new_tab: boolean;
   active: boolean;
   ordering: number;
 };
@@ -170,6 +191,11 @@ export type CampaignForm = {
   hero_image_variants?: ImageVariantSet;
   hero_image_alt: string;
   button_label: string;
+  submitting_label: string;
+  empty_select_label: string;
+  checkbox_label: string;
+  error_message: string;
+  schedule_enabled?: boolean;
   starts_at?: string | null;
   ends_at?: string | null;
   success_message: string;

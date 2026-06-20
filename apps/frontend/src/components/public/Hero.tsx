@@ -4,48 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import type { BrandSettings, HeroSlide, Service } from "@/types/cms";
+import type { HeroSlide, Service } from "@/types/cms";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 
-const fallbackImages = ["/generated/glow-hero-signature.webp", "/generated/glow-hero-offer.webp", "/generated/glow-hero-face-yoga.webp"];
 const autoplayMs = 7200;
 
-export function Hero({ brand, slides, services }: { brand: BrandSettings; slides: HeroSlide[]; services: Service[] }) {
-  const resolvedSlides = useMemo<HeroSlide[]>(
-    () =>
-      slides.length
-        ? slides
-        : [
-            {
-              id: 1,
-              title: brand.tagline,
-              subtitle: brand.essence,
-              body: "Come in for one peaceful hour. Leave feeling rested, lifted, and beautifully looked after.",
-              image_url: fallbackImages[0],
-              image_alt: "Luxury facial massage ritual",
-              offer_label: "Signature consultation",
-              primary_cta_label: "Book a consultation",
-              primary_cta_url: "/campaigns/glow-consultation",
-              secondary_cta_label: "Explore rituals",
-              secondary_cta_url: "/services",
-              linked_campaign: null,
-              campaign_slug: "",
-              campaign_title: "",
-              starts_at: null,
-              ends_at: null,
-              active: true,
-              is_active_now: true,
-              ordering: 0,
-              config: {}
-            }
-          ],
-    [brand, slides]
-  );
+export function Hero({ slides, services }: { slides: HeroSlide[]; services: Service[] }) {
+  const resolvedSlides = useMemo<HeroSlide[]>(() => slides, [slides]);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [manualVersion, setManualVersion] = useState(0);
   const reduceMotion = useReducedMotion();
-  const active = resolvedSlides[index % resolvedSlides.length];
+  const active = resolvedSlides.length ? resolvedSlides[index % resolvedSlides.length] : null;
   const featuredServices = services.slice(0, 3);
 
   useEffect(() => {
@@ -53,6 +23,10 @@ export function Hero({ brand, slides, services }: { brand: BrandSettings; slides
     const timer = window.setTimeout(() => setIndex((current) => (current + 1) % resolvedSlides.length), autoplayMs);
     return () => window.clearTimeout(timer);
   }, [index, manualVersion, paused, reduceMotion, resolvedSlides.length]);
+
+  if (!active) {
+    return null;
+  }
 
   function go(direction: number) {
     setIndex((current) => (current + direction + resolvedSlides.length) % resolvedSlides.length);
@@ -81,17 +55,18 @@ export function Hero({ brand, slides, services }: { brand: BrandSettings; slides
           transition={{ duration: 1.1, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <ResponsiveImage
-            src={active.image_url || fallbackImages[index % fallbackImages.length]}
-            variants={active.image_variants}
-            fallbackSrc={fallbackImages[index % fallbackImages.length]}
-            alt={active.image_alt || active.title}
-            sizes="100vw"
-            loading={index === 0 ? "eager" : "lazy"}
-            fetchPriority={index === 0 ? "high" : "auto"}
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
+          {(active.image_url || active.image_variants?.fallback_url) && (
+            <ResponsiveImage
+              src={active.image_url}
+              variants={active.image_variants}
+              alt={active.image_alt || active.title}
+              sizes="100vw"
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          )}
         </motion.div>
       </AnimatePresence>
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(37,29,24,0.86)_0%,rgba(37,29,24,0.68)_36%,rgba(37,29,24,0.24)_68%,rgba(37,29,24,0.06)_100%)]" />
@@ -113,12 +88,14 @@ export function Hero({ brand, slides, services }: { brand: BrandSettings; slides
                 <p className="mt-6 max-w-2xl text-base leading-8 text-ivory/82 md:text-xl">{active.subtitle}</p>
                 {active.body && <p className="mt-3 max-w-xl text-sm leading-7 text-ivory/70 md:text-base">{active.body}</p>}
                 <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <Link href={active.primary_cta_url || "/campaigns/glow-consultation"} className="brand-button group inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold text-espresso transition hover:bg-ivory">
-                    {active.primary_cta_label || "Book a consultation"}
-                    <ArrowRight size={16} className="transition group-hover:translate-x-1" />
-                  </Link>
-                  {active.secondary_cta_label && (
-                    <Link href={active.secondary_cta_url || "/services"} className="brand-button border-b border-champagne/70 pb-2 text-sm font-bold text-ivory transition hover:text-champagne">
+                  {active.primary_cta_label && active.primary_cta_url && (
+                    <Link href={active.primary_cta_url} className="brand-button group inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold text-espresso transition hover:bg-ivory">
+                      {active.primary_cta_label}
+                      <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+                    </Link>
+                  )}
+                  {active.secondary_cta_label && active.secondary_cta_url && (
+                    <Link href={active.secondary_cta_url} className="brand-button border-b border-champagne/70 pb-2 text-sm font-bold text-ivory transition hover:text-champagne">
                       {active.secondary_cta_label}
                     </Link>
                   )}
@@ -154,7 +131,7 @@ export function Hero({ brand, slides, services }: { brand: BrandSettings; slides
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               {featuredServices.map((service) => (
-                <Link key={service.id} href={service.cta_url || "/services"} className="group border border-ivory/16 bg-ivory/[0.07] p-4 transition hover:border-champagne/70 hover:bg-ivory/[0.12]">
+                <Link key={service.id} href={service.cta_url || (service.booking_campaign_slug ? `/campaigns/${service.booking_campaign_slug}` : "/glow-rituals")} className="group border border-ivory/16 bg-ivory/[0.07] p-4 transition hover:border-champagne/70 hover:bg-ivory/[0.12]">
                   <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-champagne">{service.duration}</p>
                   <h2 className="mt-2 font-display text-xl text-ivory">{service.title}</h2>
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-ivory/64">{service.short_description}</p>

@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 from rest_framework import serializers
+from django.utils.text import slugify
 
 from apps.common.image_variants import image_variant_set
 from apps.common.storage import file_key, file_url
-from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, Testimonial
+from apps.content.models import (
+    BrandSettings,
+    FAQ,
+    GalleryImage,
+    HeroSlide,
+    MediaAsset,
+    Page,
+    PageSection,
+    Service,
+    SiteNavigationItem,
+    Testimonial,
+)
 
 
 class S3FileMixin:
@@ -111,6 +123,7 @@ class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
             "linked_campaign",
             "campaign_slug",
             "campaign_title",
+            "schedule_enabled",
             "starts_at",
             "ends_at",
             "active",
@@ -121,6 +134,16 @@ class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):
         ]
         read_only_fields = ["image_url", "image_key", "image_variants", "campaign_slug", "campaign_title", "is_active_now", "updated_at"]
         extra_kwargs = {"image": {"write_only": True, "required": False}}
+
+    def validate(self, attrs):
+        schedule_enabled = attrs.get("schedule_enabled", getattr(self.instance, "schedule_enabled", False))
+        starts_at = attrs.get("starts_at", getattr(self.instance, "starts_at", None))
+        ends_at = attrs.get("ends_at", getattr(self.instance, "ends_at", None))
+        if schedule_enabled and not starts_at and not ends_at:
+            raise serializers.ValidationError({"starts_at": "Add a start or end date, or turn scheduling off."})
+        if starts_at and ends_at and ends_at <= starts_at:
+            raise serializers.ValidationError({"ends_at": "End date must be after the start date."})
+        return attrs
 
     def get_image_url(self, obj):
         return self.get_url_for(obj, "image")
@@ -143,6 +166,7 @@ class PageSectionSerializer(S3FileMixin, serializers.ModelSerializer):
             "id",
             "page",
             "section_type",
+            "eyebrow",
             "title",
             "subtitle",
             "body",
@@ -150,8 +174,15 @@ class PageSectionSerializer(S3FileMixin, serializers.ModelSerializer):
             "media_url",
             "media_key",
             "media_variants",
+            "media_alt",
             "cta_label",
             "cta_url",
+            "cta_style",
+            "secondary_cta_label",
+            "secondary_cta_url",
+            "secondary_cta_style",
+            "layout_variant",
+            "background_variant",
             "ordering",
             "active",
             "config",
@@ -176,6 +207,21 @@ class PageSerializer(serializers.ModelSerializer):
         model = Page
         fields = ["id", "title", "slug", "status", "seo_title", "seo_description", "ordering", "sections", "updated_at"]
         read_only_fields = ["updated_at"]
+        extra_kwargs = {"slug": {"required": False, "allow_blank": True}}
+
+    def validate(self, attrs):
+        title = attrs.get("title", getattr(self.instance, "title", ""))
+        slug = attrs.get("slug", getattr(self.instance, "slug", ""))
+        if not slug and title:
+            slug = slugify(title)
+            attrs["slug"] = slug
+        if slug:
+            queryset = Page.objects.filter(slug=slug)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({"slug": "A page with this slug already exists."})
+        return attrs
 
 
 class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
@@ -215,7 +261,28 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["image_url", "image_key", "image_variants", "booking_campaign_slug", "updated_at"]
-        extra_kwargs = {"image": {"write_only": True, "required": False}}
+        extra_kwargs = {
+            "image": {"write_only": True, "required": False},
+            "slug": {"required": False, "allow_blank": True},
+        }
+
+    def validate(self, attrs):
+        title = attrs.get("title", getattr(self.instance, "title", ""))
+        slug = attrs.get("slug", getattr(self.instance, "slug", ""))
+        if not slug and title:
+            slug = slugify(title)
+            attrs["slug"] = slug
+        if slug:
+            queryset = Service.objects.filter(slug=slug)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError({"slug": "A service with this slug already exists."})
+        price_amount = attrs.get("price_amount", getattr(self.instance, "price_amount", None))
+        sale_price_amount = attrs.get("sale_price_amount", getattr(self.instance, "sale_price_amount", None))
+        if price_amount is not None and sale_price_amount is not None and sale_price_amount > price_amount:
+            raise serializers.ValidationError({"sale_price_amount": "Sale price cannot be higher than the regular price."})
+        return attrs
 
     def get_image_url(self, obj):
         return self.get_url_for(obj, "image")
@@ -230,7 +297,24 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
 class TestimonialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Testimonial
-        fields = ["id", "name", "quote", "role", "active", "ordering", "updated_at"]
+        fields = ["id", "name", "quote", "role", "is_anonymized", "active", "ordering", "updated_at"]
+        read_only_fields = ["updated_at"]
+
+
+class SiteNavigationItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteNavigationItem
+        fields = [
+            "id",
+            "label",
+            "url",
+            "placement",
+            "style",
+            "open_in_new_tab",
+            "active",
+            "ordering",
+            "updated_at",
+        ]
         read_only_fields = ["updated_at"]
 
 

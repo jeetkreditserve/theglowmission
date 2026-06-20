@@ -16,6 +16,7 @@ type HeroSlideItem = {
   primary_cta_url: string;
   secondary_cta_label: string;
   secondary_cta_url: string;
+  schedule_enabled: boolean;
   starts_at: string | null;
   ends_at: string | null;
   active: boolean;
@@ -39,7 +40,8 @@ export default function AdminHeroPage() {
           primary_cta_label: "Book a consultation",
           primary_cta_url: "/campaigns/glow-consultation",
           secondary_cta_label: "Explore rituals",
-          secondary_cta_url: "/services",
+          secondary_cta_url: "/glow-rituals",
+          schedule_enabled: false,
           starts_at: null,
           ends_at: null,
           active: true,
@@ -63,8 +65,9 @@ export default function AdminHeroPage() {
           { name: "primary_cta_url", label: "Primary CTA URL" },
           { name: "secondary_cta_label", label: "Secondary CTA label" },
           { name: "secondary_cta_url", label: "Secondary CTA URL" },
-          { name: "starts_at", label: "Starts at", type: "datetime" },
-          { name: "ends_at", label: "Ends at", type: "datetime" },
+          { name: "schedule_enabled", label: "Enable scheduling", type: "checkbox", span: "full", help: "Only turn this on when the slide should be shown within a date window." },
+          { name: "starts_at", label: "Starts at", type: "datetime", help: "Optional unless scheduling is enabled." },
+          { name: "ends_at", label: "Ends at", type: "datetime", help: "Optional unless scheduling is enabled." },
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }
         ]}
