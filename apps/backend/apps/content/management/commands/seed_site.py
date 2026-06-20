@@ -190,8 +190,8 @@ class Command(BaseCommand):
         brand.body_font = "Montserrat"
         brand.cta_style = {"radius": "2px", "case": "uppercase", "tracking": "0.12em"}
         brand.contact_email = "info@theglowmission.com"
-        brand.instagram_handle = "@the.glowm.ission"
-        brand.social_links = {"instagram": "https://instagram.com/theglowmission"}
+        brand.instagram_handle = "@the.glow.mission"
+        brand.social_links = {"instagram": "https://instagram.com/the.glow.mission"}
 
         self.attach_seed_image(brand, "logo_image", "glow-mission-logo-3d.png", "glow-mission-logo-3d.png")
         self.attach_seed_image(brand, "favicon", "glow-mission-logo-3d.png", "glow-mission-favicon.png")
@@ -232,7 +232,7 @@ class Command(BaseCommand):
             ("Gallery", "/gallery", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 2),
             ("Contact", "/contact", SiteNavigationItem.Placement.FOOTER, SiteNavigationItem.Style.LINK, 3),
             ("Book a consultation", "/campaigns/glow-consultation", SiteNavigationItem.Placement.FOOTER_CTA, SiteNavigationItem.Style.SECONDARY, 0),
-            ("Instagram", "https://instagram.com/theglowmission", SiteNavigationItem.Placement.SOCIAL, SiteNavigationItem.Style.LINK, 0),
+            ("Instagram", "https://instagram.com/the.glow.mission", SiteNavigationItem.Placement.SOCIAL, SiteNavigationItem.Style.LINK, 0),
         ]
         for label, url, placement, style, ordering in items:
             SiteNavigationItem.objects.update_or_create(
