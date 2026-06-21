@@ -20,6 +20,10 @@ type ResponseItem = {
   form: number;
   form_title: string;
   form_slug: string;
+  contact: number | null;
+  contact_display_name: string;
+  contact_sync_status: string;
+  contact_sync_error: string;
   submitted_at: string;
   response_data: Record<string, unknown>;
   metadata: Record<string, unknown>;
@@ -83,6 +87,7 @@ export default function AdminCampaignResponsesPage() {
                     <tr>
                       <th className="px-5 py-4 font-semibold">Submitted</th>
                       <th className="px-5 py-4 font-semibold">Campaign</th>
+                      <th className="px-5 py-4 font-semibold">Contact</th>
                       <th className="px-5 py-4 font-semibold">Name</th>
                       <th className="px-5 py-4 font-semibold">Email</th>
                       <th className="px-5 py-4 font-semibold">Phone</th>
@@ -92,7 +97,7 @@ export default function AdminCampaignResponsesPage() {
                   <tbody>
                     {!sortedResponses.length && (
                       <tr>
-                        <td className="px-5 py-8 text-espresso/55" colSpan={6}>
+                        <td className="px-5 py-8 text-espresso/55" colSpan={7}>
                           No campaign responses found.
                         </td>
                       </tr>
@@ -104,6 +109,15 @@ export default function AdminCampaignResponsesPage() {
                           <Link href={`/admin/campaigns/${item.form}/responses`} className="font-semibold text-espresso underline underline-offset-4">
                             {item.form_title || `Campaign #${item.form}`}
                           </Link>
+                        </td>
+                        <td className="px-5 py-4 text-espresso/75">
+                          {item.contact ? (
+                            <Link href={`/admin/contacts/${item.contact}`} className="font-semibold text-espresso underline underline-offset-4">
+                              {item.contact_display_name || `Contact #${item.contact}`}
+                            </Link>
+                          ) : (
+                            syncLabel(item.contact_sync_status)
+                          )}
                         </td>
                         <td className="px-5 py-4 text-espresso/75">{valueFor(item, ["full_name", "name"])}</td>
                         <td className="px-5 py-4 text-espresso/75">{valueFor(item, ["email"])}</td>
@@ -145,6 +159,7 @@ function ResponseDetail({ response, onClose }: { response: ResponseItem | null; 
           <h3 className="font-display text-2xl text-espresso">Entry #{response.id}</h3>
           <p className="mt-1 text-sm text-espresso/60">{response.form_title}</p>
           <p className="mt-1 text-sm text-espresso/60">{new Date(response.submitted_at).toLocaleString()}</p>
+          <p className="mt-1 text-sm text-espresso/60">Contact sync: {syncLabel(response.contact_sync_status)}</p>
         </div>
         <button type="button" onClick={onClose} className="text-espresso/55 hover:text-espresso">
           <X size={20} />
@@ -161,6 +176,11 @@ function ResponseDetail({ response, onClose }: { response: ResponseItem | null; 
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2 border-t border-champagne/25 pt-5">
+        {response.contact && (
+          <Link href={`/admin/contacts/${response.contact}`} className="admin-button-secondary">
+            Contact profile
+          </Link>
+        )}
         <Link href={`/admin/campaigns/${response.form}/responses`} className="admin-button-secondary">
           Campaign responses
         </Link>
@@ -178,6 +198,11 @@ function valueFor(item: ResponseItem, keys: string[]) {
     if (value !== undefined && value !== null && value !== "") return formatValue(value);
   }
   return "-";
+}
+
+function syncLabel(status: string) {
+  if (!status) return "-";
+  return status.replace(/_/g, " ");
 }
 
 function formatValue(value: unknown) {

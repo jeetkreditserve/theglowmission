@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, GalleryHorizontalEnd, HelpCircle, Images, Inbox, LayoutDashboard, Link2, LogOut, MessageSquareQuote, Palette, Sparkles, SquarePen, View } from "lucide-react";
+import { FileText, GalleryHorizontalEnd, HelpCircle, Images, Inbox, LayoutDashboard, Link2, LogOut, MessageSquareQuote, Palette, Sparkles, SquarePen, Tags, Users, View } from "lucide-react";
 import { AdminToastProvider } from "@/components/admin/AdminToasts";
 
 const navItems = [
@@ -17,6 +17,8 @@ const navItems = [
   { label: "Media", href: "/admin/media", icon: Images },
   { label: "FAQs", href: "/admin/faqs", icon: HelpCircle },
   { label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
+  { label: "Contacts", href: "/admin/contacts", icon: Users },
+  { label: "Contact Statuses", href: "/admin/contact-statuses", icon: Tags },
   { label: "Campaigns", href: "/admin/campaigns", icon: SquarePen },
   { label: "Responses", href: "/admin/campaign-responses", icon: Inbox }
 ];

@@ -78,6 +78,10 @@ Admin:
 - `/api/v1/admin/faqs/`
 - `/api/v1/admin/gallery/`
 - `/api/v1/admin/media-assets/`
+- `/api/v1/admin/contacts/`
+- `/api/v1/admin/contacts/export/`
+- `/api/v1/admin/contact-statuses/`
+- `/api/v1/admin/contact-notes/`
 - `/api/v1/admin/campaign-forms/`
 - `/api/v1/admin/campaign-fields/`
 - `/api/v1/admin/campaign-responses/`

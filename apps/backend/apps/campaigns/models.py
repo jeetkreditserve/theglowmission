@@ -101,11 +101,27 @@ class CampaignFormField(TimeStampedModel):
 
 
 class CampaignFormResponse(TimeStampedModel):
+    class ContactSyncStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SYNCED = "synced", "Synced"
+        SKIPPED = "skipped", "Skipped"
+        CONFLICT = "conflict", "Conflict"
+        FAILED = "failed", "Failed"
+
     form = models.ForeignKey(CampaignForm, related_name="responses", on_delete=models.CASCADE)
+    contact = models.ForeignKey(
+        "contacts.Contact",
+        related_name="campaign_responses",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     response_data = models.JSONField(default=dict)
     metadata = models.JSONField(default=dict, blank=True)
     field_snapshot = models.JSONField(default=list)
+    contact_sync_status = models.CharField(max_length=24, choices=ContactSyncStatus.choices, default=ContactSyncStatus.PENDING)
+    contact_sync_error = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-submitted_at"]

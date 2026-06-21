@@ -595,7 +595,7 @@ class Command(BaseCommand):
                 "button_label": "Request my consultation",
                 "submitting_label": "Sending your request...",
                 "empty_select_label": "Choose a glow ritual",
-                "checkbox_label": "Yes, this feels right",
+                "checkbox_label": "Yes",
                 "error_message": "Please check the highlighted fields and try again.",
                 "schedule_enabled": False,
                 "starts_at": None,
@@ -615,6 +615,14 @@ class Command(BaseCommand):
             ("Preferred ritual", "preferred_ritual", CampaignFormField.FieldType.SELECT, True, 3, ""),
             ("Preferred day", "preferred_day", CampaignFormField.FieldType.TEXT, False, 4, "Weekday morning, weekend evening..."),
             ("What would you like help with?", "skin_goal", CampaignFormField.FieldType.TEXTAREA, False, 5, "Dullness, tension, puffiness, unevenness, dryness..."),
+            (
+                "I consent to receiving WhatsApp, SMS, phone, and email updates from The Glow Mission.",
+                "marketing_consent",
+                CampaignFormField.FieldType.CHECKBOX,
+                False,
+                6,
+                "",
+            ),
         ]
         for label, key, field_type, required, ordering, placeholder in fields:
             CampaignFormField.objects.update_or_create(
@@ -643,7 +651,7 @@ class Command(BaseCommand):
                 "button_label": "Apply for my complimentary session",
                 "submitting_label": "Sending your application...",
                 "empty_select_label": "Select one",
-                "checkbox_label": "I consent to optional filming and social media use",
+                "checkbox_label": "Yes",
                 "error_message": "Please check the highlighted fields and try again.",
                 "schedule_enabled": False,
                 "starts_at": None,
@@ -741,6 +749,14 @@ class Command(BaseCommand):
                 "required": True,
                 "ordering": 8,
                 "placeholder": "Please write none if no known allergies.",
+                "validation": {},
+            },
+            {
+                "label": "I consent to receiving WhatsApp, SMS, phone, and email updates from The Glow Mission.",
+                "key": "marketing_consent",
+                "field_type": CampaignFormField.FieldType.CHECKBOX,
+                "required": False,
+                "ordering": 9,
                 "validation": {},
             },
         ]

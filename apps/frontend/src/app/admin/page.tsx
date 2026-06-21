@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, Images, Inbox, LayoutDashboard, Palette, Sparkles, View } from "lucide-react";
+import { ArrowRight, FileText, Images, Inbox, LayoutDashboard, Palette, Sparkles, Users, View } from "lucide-react";
 import { CampaignActions } from "@/components/admin/CampaignActions";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PublicLink, useAdminList } from "@/components/admin/AdminLists";
@@ -9,6 +9,7 @@ import { PublicLink, useAdminList } from "@/components/admin/AdminLists";
 type Campaign = { id: number; title: string; slug: string; status: string; response_count: number; is_active_now: boolean };
 type Page = { id: number; title: string; slug: string; status: string; updated_at: string };
 type Ritual = { id: number; title: string; active: boolean; duration: string };
+type Contact = { id: number; display_name: string };
 type ResponseItem = {
   id: number;
   form: number;
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
   const campaigns = useAdminList<Campaign>("/admin/campaign-forms/");
   const pages = useAdminList<Page>("/admin/pages/");
   const rituals = useAdminList<Ritual>("/admin/services/");
+  const contacts = useAdminList<Contact>("/admin/contacts/");
   const responses = useAdminList<ResponseItem>("/admin/campaign-responses/");
 
   const recentResponses = [...responses.items]
@@ -57,8 +59,9 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <Metric label="Total responses" value={totalResponses} href="/admin/campaign-responses" />
+          <Metric label="Contacts" value={contacts.items.length} href="/admin/contacts" />
           <Metric label="Active campaigns" value={activeCampaigns} href="/admin/campaigns" />
           <Metric label="Campaigns" value={campaigns.items.length} href="/admin/campaigns" />
           <Metric label="Published pages" value={publishedPages} href="/admin/pages" />
@@ -141,6 +144,7 @@ export default function AdminDashboardPage() {
                 <QuickAction href="/admin/pages" icon={<FileText size={16} />} label="Pages" />
                 <QuickAction href="/admin/hero" icon={<View size={16} />} label="Hero" />
                 <QuickAction href="/admin/glow-rituals" icon={<Sparkles size={16} />} label="Rituals" />
+                <QuickAction href="/admin/contacts" icon={<Users size={16} />} label="Contacts" />
                 <QuickAction href="/admin/media" icon={<Images size={16} />} label="Media" />
                 <QuickAction href="/admin/campaign-responses" icon={<Inbox size={16} />} label="Responses" />
               </div>

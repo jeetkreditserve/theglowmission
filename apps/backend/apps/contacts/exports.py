@@ -5,7 +5,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from django.utils import timezone
 
-from apps.campaigns.models import CampaignForm
+from apps.contacts.models import Contact
 
 
 BRAND_FILL = PatternFill("solid", fgColor="2B2623")
@@ -18,15 +18,30 @@ BODY_FONT = Font(color="2B2623")
 THIN_BOTTOM = Border(bottom=Side(style="thin", color="D9B88C"))
 
 
-def build_campaign_responses_workbook(form: CampaignForm) -> Workbook:
+def build_contacts_workbook(contacts) -> Workbook:
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Responses"
+    sheet.title = "Contacts"
     sheet.sheet_view.showGridLines = False
 
-    fields = list(form.fields.order_by("ordering", "id"))
-    responses = list(form.responses.order_by("submitted_at"))
-    headers = ["Submitted At", "Response ID"] + [field.label for field in fields]
+    contacts = list(contacts)
+    headers = [
+        "Contact ID",
+        "Status",
+        "Full name",
+        "Email",
+        "Phone",
+        "Address",
+        "Age",
+        "Skin type",
+        "Preferred ritual",
+        "Preferred day",
+        "Skin goal",
+        "Marketing consent",
+        "Source responses",
+        "First activity",
+        "Last activity",
+    ]
     last_column = get_column_letter(len(headers))
 
     sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
@@ -37,9 +52,9 @@ def build_campaign_responses_workbook(form: CampaignForm) -> Workbook:
     for column in range(2, len(headers) + 1):
         sheet.cell(row=1, column=column).fill = BRAND_FILL
 
-    sheet["A2"] = f"{form.title} responses"
+    sheet["A2"] = "Contacts export"
     sheet["A3"] = f"Exported: {timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')}"
-    sheet["A4"] = f"Response count: {len(responses)}"
+    sheet["A4"] = f"Contact count: {len(contacts)}"
     for row in range(2, 5):
         sheet.cell(row=row, column=1).font = HEADER_FONT
         sheet.cell(row=row, column=1).fill = SUBTLE_FILL
@@ -53,41 +68,45 @@ def build_campaign_responses_workbook(form: CampaignForm) -> Workbook:
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = THIN_BOTTOM
 
-    for row_index, response in enumerate(responses, start=header_row + 1):
-        submitted_at = timezone.localtime(response.submitted_at).replace(tzinfo=None)
-        row_values = [submitted_at, response.id]
-        for field in fields:
-            row_values.append(format_response_value(response.response_data.get(field.key, "")))
+    for row_index, contact in enumerate(contacts, start=header_row + 1):
+        row_values = [
+            contact.id,
+            contact.status.name if contact.status else "",
+            contact.full_name,
+            contact.email,
+            contact.phone,
+            contact.address,
+            contact.age,
+            contact.skin_type,
+            contact.preferred_ritual,
+            contact.preferred_day,
+            contact.skin_goal,
+            "Yes" if contact.marketing_consent else "No",
+            contact.source_response_count,
+            local_naive(contact.first_activity_at),
+            local_naive(contact.last_activity_at),
+        ]
         for column, value in enumerate(row_values, start=1):
             cell = sheet.cell(row=row_index, column=column, value=value)
             cell.font = BODY_FONT
             cell.alignment = Alignment(vertical="top", wrap_text=True)
-            if column == 1:
+            if column in {14, 15}:
                 cell.number_format = "yyyy-mm-dd hh:mm"
 
-    last_row = max(header_row + 1, header_row + len(responses))
+    last_row = max(header_row + 1, header_row + len(contacts))
     sheet.auto_filter.ref = f"A{header_row}:{last_column}{last_row}"
-    sheet.freeze_panes = f"B{header_row + 1}"
-
+    sheet.freeze_panes = f"C{header_row + 1}"
     autosize_columns(sheet, min_width=12, max_width=48)
-    sheet.column_dimensions["A"].width = 20
-    sheet.column_dimensions["B"].width = 12
+    sheet.column_dimensions["A"].width = 12
     sheet.row_dimensions[1].height = 28
     sheet.row_dimensions[header_row].height = 26
-
     return workbook
 
 
-def format_response_value(value: object) -> object:
-    if value is None or value == "":
-        return ""
-    if isinstance(value, bool):
-        return "Yes" if value else "No"
-    if isinstance(value, list):
-        return ", ".join(str(part) for part in value)
-    if isinstance(value, dict):
-        return ", ".join(f"{key}: {part}" for key, part in value.items())
-    return value
+def local_naive(value):
+    if not value:
+        return None
+    return timezone.localtime(value).replace(tzinfo=None)
 
 
 def autosize_columns(sheet, *, min_width: int, max_width: int) -> None:

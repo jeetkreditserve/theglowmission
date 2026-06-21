@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "storages",
     "apps.common",
     "apps.accounts",
+    "apps.contacts",
     "apps.content",
     "apps.campaigns",
 ]

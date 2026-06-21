@@ -134,8 +134,15 @@ class CampaignFormFieldViewSet(viewsets.ModelViewSet):
 
 class CampaignFormResponseViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAdminUser]
-    queryset = CampaignFormResponse.objects.select_related("form").all()
+    queryset = CampaignFormResponse.objects.select_related("form", "contact").all()
     serializer_class = CampaignFormResponseSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["form__title"]
+    search_fields = ["form__title", "contact__full_name", "contact__email", "contact__phone"]
     ordering_fields = ["submitted_at", "created_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        contact_id = self.request.query_params.get("contact")
+        if contact_id:
+            queryset = queryset.filter(contact_id=contact_id)
+        return queryset

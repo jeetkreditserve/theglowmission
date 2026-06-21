@@ -18,5 +18,5 @@ class CampaignFormAdmin(admin.ModelAdmin):
 
 @admin.register(CampaignFormResponse)
 class CampaignFormResponseAdmin(admin.ModelAdmin):
-    list_display = ["form", "submitted_at"]
-    readonly_fields = ["submitted_at", "response_data", "metadata", "field_snapshot"]
+    list_display = ["form", "contact", "contact_sync_status", "submitted_at"]
+    readonly_fields = ["submitted_at", "response_data", "metadata", "field_snapshot", "contact_sync_status", "contact_sync_error"]

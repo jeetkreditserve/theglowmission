@@ -225,3 +225,67 @@ export type CampaignForm = {
   response_count?: number;
   is_active_now?: boolean;
 };
+
+export type ContactStatus = {
+  id: number;
+  name: string;
+  slug: string;
+  ordering: number;
+  is_default: boolean;
+  contact_count: number;
+  updated_at: string;
+};
+
+export type ContactSummary = {
+  id: number;
+  display_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  status: number | null;
+  status_name: string;
+  marketing_consent: boolean;
+  last_activity_at: string | null;
+  source_response_count: number;
+  is_merged: boolean;
+};
+
+export type ContactAuditEvent = {
+  id: number;
+  event_type: string;
+  field_name: string;
+  old_value: unknown;
+  new_value: unknown;
+  source_type: string;
+  source_id: string;
+  actor_email: string;
+  message: string;
+  created_at: string;
+};
+
+export type ContactNote = {
+  id: number;
+  contact: number;
+  body: string;
+  created_by_email: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Contact = ContactSummary & {
+  address: string;
+  age: number | null;
+  skin_type: string;
+  preferred_ritual: string;
+  preferred_day: string;
+  skin_goal: string;
+  first_activity_at: string | null;
+  merged_into: number | null;
+  merged_at: string | null;
+  possible_duplicate_count: number;
+  possible_duplicates: ContactSummary[];
+  notes: ContactNote[];
+  audit_events: ContactAuditEvent[];
+  created_at: string;
+  updated_at: string;
+};

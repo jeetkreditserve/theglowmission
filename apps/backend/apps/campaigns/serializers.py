@@ -11,6 +11,7 @@ from apps.common.image_variants import image_variant_set
 from apps.common.form_validation import validate_digit_phone
 from apps.common.storage import file_key, file_url
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
+from apps.contacts.services import sync_campaign_response_to_contact
 
 
 class S3FileMixin:
@@ -195,11 +196,29 @@ class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
 class CampaignFormResponseSerializer(serializers.ModelSerializer):
     form_title = serializers.CharField(source="form.title", read_only=True)
     form_slug = serializers.CharField(source="form.slug", read_only=True)
+    contact_display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CampaignFormResponse
-        fields = ["id", "form", "form_title", "form_slug", "submitted_at", "response_data", "metadata", "field_snapshot", "created_at"]
+        fields = [
+            "id",
+            "form",
+            "form_title",
+            "form_slug",
+            "contact",
+            "contact_display_name",
+            "contact_sync_status",
+            "contact_sync_error",
+            "submitted_at",
+            "response_data",
+            "metadata",
+            "field_snapshot",
+            "created_at",
+        ]
         read_only_fields = ["submitted_at", "created_at"]
+
+    def get_contact_display_name(self, obj):
+        return obj.contact.display_name if obj.contact_id and obj.contact else ""
 
 
 class PublicCampaignResponseSerializer(serializers.Serializer):
@@ -340,9 +359,11 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
                 "ip": request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "")),
                 "user_agent": request.META.get("HTTP_USER_AGENT", ""),
             }
-        return CampaignFormResponse.objects.create(
+        response = CampaignFormResponse.objects.create(
             form=form,
             response_data=validated_data["response_data"],
             metadata=metadata,
             field_snapshot=snapshot,
         )
+        sync_campaign_response_to_contact(response)
+        return response
