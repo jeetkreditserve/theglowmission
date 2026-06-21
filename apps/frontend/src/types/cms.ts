@@ -20,6 +20,15 @@ export type BrandSettings = {
   tagline: string;
   essence: string;
   mission_statement: string;
+  canonical_site_url: string;
+  seo_title: string;
+  seo_description: string;
+  business_description: string;
+  area_served: string;
+  same_as_links: string[];
+  opening_hours: string[];
+  latitude: string | null;
+  longitude: string | null;
   logo_url: string | null;
   logo_key: string | null;
   logo_variants?: ImageVariantSet;
@@ -125,6 +134,16 @@ export type Service = {
   booking_campaign_slug: string;
   active: boolean;
   ordering: number;
+};
+
+export type SeoIndexItem = {
+  path: string;
+  title: string;
+  description: string;
+  type: "page" | "service" | "campaign";
+  updated_at: string;
+  priority: number;
+  image_url: string | null;
 };
 
 export type GalleryImage = {

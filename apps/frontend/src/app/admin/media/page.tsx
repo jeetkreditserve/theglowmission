@@ -28,8 +28,8 @@ export default function AdminMediaPage() {
           { label: "Created", value: (item) => new Date(item.created_at).toLocaleString() }
         ]}
         fields={[
-          { name: "title", label: "Title" },
-          { name: "file", label: "File", type: "image", span: "full" },
+          { name: "title", label: "Title", required: true },
+          { name: "file", label: "File", type: "image", span: "full", required: true },
           { name: "alt_text", label: "Alt text", span: "full" },
           { name: "metadata", label: "Metadata JSON", type: "json", span: "full" }
         ]}

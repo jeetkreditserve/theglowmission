@@ -26,8 +26,8 @@ export default function AdminFAQsPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "question", label: "Question", span: "full" },
-          { name: "answer", label: "Answer", type: "textarea", span: "full" },
+          { name: "question", label: "Question", span: "full", required: true },
+          { name: "answer", label: "Answer", type: "textarea", span: "full", required: true },
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }
         ]}

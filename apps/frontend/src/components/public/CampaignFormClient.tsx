@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ApiError, flattenApiErrors, formatApiError, submitCampaignResponse } from "@/lib/api";
+import { phoneInputValue, validateTypedFields, validationNumber, validationString } from "@/lib/formValidation";
 import type { CampaignForm } from "@/types/cms";
 
 export function CampaignFormClient({ form }: { form: CampaignForm }) {
@@ -17,10 +18,40 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  function updateValue(field: CampaignForm["fields"][number], value: string | boolean, inlineError = "") {
+    setValues((current) => ({ ...current, [field.key]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      if (inlineError) {
+        next[field.key] = inlineError;
+      } else {
+        delete next[field.key];
+      }
+      return next;
+    });
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("submitting");
     setMessage("");
+    const clientErrors = validateTypedFields(
+      form.fields.map((field) => ({
+        name: field.key,
+        label: field.label,
+        fieldType: field.field_type,
+        required: field.required,
+        validation: field.validation,
+        options: field.options
+      })),
+      (name) => values[name]
+    );
+    if (Object.keys(clientErrors).length) {
+      setStatus("error");
+      setFieldErrors(clientErrors);
+      setMessage(form.error_message || "Please check the highlighted fields and try again.");
+      return;
+    }
+    setStatus("submitting");
     setFieldErrors({});
     try {
       const result = await submitCampaignResponse(form.slug, values);
@@ -53,7 +84,7 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
           <FieldInput
             field={field}
             value={values[field.key]}
-            onChange={(value) => setValues((current) => ({ ...current, [field.key]: value }))}
+            onChange={(value, inlineError) => updateValue(field, value, inlineError)}
             emptySelectLabel={form.empty_select_label}
             checkboxLabel={form.checkbox_label}
           />
@@ -82,7 +113,7 @@ function FieldInput({
 }: {
   field: CampaignForm["fields"][number];
   value: string | boolean;
-  onChange: (value: string | boolean) => void;
+  onChange: (value: string | boolean, inlineError?: string) => void;
   emptySelectLabel: string;
   checkboxLabel: string;
 }) {
@@ -147,26 +178,18 @@ function FieldInput({
       pattern={pattern}
       min={min}
       max={max}
-      inputMode={field.field_type === "phone" ? "tel" : field.field_type === "number" ? "numeric" : undefined}
+      inputMode={field.field_type === "phone" ? "numeric" : field.field_type === "number" ? "numeric" : undefined}
       placeholder={field.placeholder}
       className={baseClass}
       value={String(value)}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => {
+        if (field.field_type === "phone") {
+          const next = phoneInputValue(event.target.value);
+          onChange(next.value, next.error);
+          return;
+        }
+        onChange(event.target.value);
+      }}
     />
   );
-}
-
-function validationNumber(validation: Record<string, unknown>, key: string) {
-  const value = validation[key];
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function validationString(validation: Record<string, unknown>, key: string) {
-  const value = validation[key];
-  return typeof value === "string" && value ? value : undefined;
 }

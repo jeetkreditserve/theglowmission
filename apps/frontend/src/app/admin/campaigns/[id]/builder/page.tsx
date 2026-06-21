@@ -52,12 +52,13 @@ export default function CampaignBuilderPage() {
           { label: "Active", value: (item) => (item.active ? "Yes" : "No") }
         ]}
         fields={[
-          { name: "label", label: "Label" },
+          { name: "label", label: "Label", required: true },
           { name: "key", label: "Key", help: "Cannot be changed after responses exist." },
           {
             name: "field_type",
             label: "Field type",
             type: "select",
+            required: true,
             options: [
               { label: "Text", value: "text" },
               { label: "Textarea", value: "textarea" },

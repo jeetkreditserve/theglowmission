@@ -55,14 +55,14 @@ export default function AdminHeroPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "title", label: "Title", span: "full" },
+          { name: "title", label: "Title", span: "full", required: true },
           { name: "subtitle", label: "Subtitle", span: "full" },
           { name: "body", label: "Body", type: "textarea", span: "full" },
           { name: "image", label: "Hero image", type: "image", span: "full" },
           { name: "image_alt", label: "Image alt text", span: "full" },
           { name: "offer_label", label: "Offer label" },
-          { name: "primary_cta_label", label: "Primary CTA label" },
-          { name: "primary_cta_url", label: "Primary CTA URL" },
+          { name: "primary_cta_label", label: "Primary CTA label", required: true },
+          { name: "primary_cta_url", label: "Primary CTA URL", required: true },
           { name: "secondary_cta_label", label: "Secondary CTA label" },
           { name: "secondary_cta_url", label: "Secondary CTA URL" },
           { name: "schedule_enabled", label: "Enable scheduling", type: "checkbox", span: "full", help: "Only turn this on when the slide should be shown within a date window." },

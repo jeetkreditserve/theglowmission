@@ -29,12 +29,13 @@ export default function AdminPagesPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "title", label: "Title" },
+          { name: "title", label: "Title", required: true },
           { name: "slug", label: "Slug" },
           {
             name: "status",
             label: "Status",
             type: "select",
+            required: true,
             options: [
               { label: "Draft", value: "draft" },
               { label: "Published", value: "published" },

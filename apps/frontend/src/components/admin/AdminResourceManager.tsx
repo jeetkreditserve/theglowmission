@@ -5,10 +5,11 @@ import Link from "next/link";
 import { ExternalLink, Pencil, Plus, RefreshCcw, Save, Trash2, Upload, X } from "lucide-react";
 import { useAdminToast } from "@/components/admin/AdminToasts";
 import { ApiError, adminFetch, flattenApiErrors, formatApiError } from "@/lib/api";
+import { phoneInputValue, stripPhoneDigits, validateTypedFields } from "@/lib/formValidation";
 
 type ApiList<T> = T[] | { results: T[] };
 
-export type FieldType = "text" | "textarea" | "select" | "number" | "checkbox" | "datetime" | "image" | "json" | "jsonList";
+export type FieldType = "text" | "textarea" | "email" | "phone" | "select" | "number" | "checkbox" | "date" | "datetime" | "image" | "json" | "jsonList";
 
 export type FieldConfig<T> = {
   name: keyof T & string;
@@ -18,6 +19,8 @@ export type FieldConfig<T> = {
   placeholder?: string;
   help?: string;
   readOnly?: boolean;
+  required?: boolean;
+  validation?: Record<string, unknown>;
   span?: "full" | "half";
 };
 
@@ -40,6 +43,8 @@ function fieldValue(value: unknown): string {
 function parseFieldValue(type: FieldType, value: unknown) {
   if (type === "checkbox") return Boolean(value);
   if (type === "number") return value === "" || value === null || value === undefined ? null : Number(value);
+  if (type === "phone") return stripPhoneDigits(fieldValue(value));
+  if (type === "date") return value === "" || value === null || value === undefined ? null : value;
   if (type === "datetime") return value === "" || value === null || value === undefined ? null : value;
   if (type === "jsonList") {
     if (Array.isArray(value)) return value;
@@ -144,8 +149,18 @@ export function AdminResourceManager<T extends { id: number }>({
     setFormError("");
   }
 
-  function updateField(name: string, value: unknown) {
+  function updateField(name: string, value: unknown, inlineError = "") {
     setDraft((current) => ({ ...(current || defaults), [name]: value }));
+    setFieldErrors((current) => {
+      if (!inlineError && !(name in current)) return current;
+      const next = { ...current };
+      if (inlineError) {
+        next[name] = inlineError;
+      } else {
+        delete next[name];
+      }
+      return next;
+    });
   }
 
   async function save() {
@@ -168,6 +183,34 @@ export function AdminResourceManager<T extends { id: number }>({
         const type = field.type || "text";
         payload[field.name] = parseFieldValue(type, draft[field.name as keyof T]);
       });
+      const validationErrors = validateTypedFields(
+        fields
+          .filter((field) => !field.readOnly && field.type !== "image")
+          .map((field) => ({
+            name: field.name,
+            label: field.label,
+            fieldType: field.type || "text",
+            required: field.required,
+            validation: field.validation,
+            options: field.options?.map((option) => option.value)
+          })),
+        (name) => payload[name]
+      );
+      fields
+        .filter((field) => !field.readOnly && field.type === "image" && field.required)
+        .forEach((field) => {
+          if (!files[field.name] && !previewUrlForField(field.name, draft)) {
+            validationErrors[field.name] = "This field is required.";
+          }
+        });
+      if (Object.keys(validationErrors).length) {
+        setFieldErrors(validationErrors);
+        setFormError("Please check the highlighted fields and try again.");
+        toast.error("Please check the highlighted fields and try again.");
+        setStatus("");
+        setSaving(false);
+        return;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to prepare this form.";
       setFormError(message);
@@ -370,7 +413,7 @@ function FieldInput<T>({
   draft: Partial<T>;
   files: Record<string, File | null>;
   error?: string;
-  onChange: (name: string, value: unknown) => void;
+  onChange: (name: string, value: unknown, inlineError?: string) => void;
   onFile: (file: File | null) => void;
 }) {
   const type = field.type || "text";
@@ -381,6 +424,7 @@ function FieldInput<T>({
   const label = (
     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/58">
       {field.label}
+      {field.required ? " *" : ""}
       {field.readOnly ? " (read only)" : ""}
     </span>
   );
@@ -460,9 +504,17 @@ function FieldInput<T>({
       {label}
       <input
         value={type === "datetime" ? datetimeInputValue(value) : fieldValue(value)}
-        onChange={(event) => onChange(field.name, event.target.value)}
+        onChange={(event) => {
+          if (type === "phone") {
+            const next = phoneInputValue(event.target.value);
+            onChange(field.name, next.value, next.error);
+            return;
+          }
+          onChange(field.name, event.target.value);
+        }}
         placeholder={field.placeholder}
-        type={type === "datetime" ? "datetime-local" : type}
+        type={type === "datetime" ? "datetime-local" : type === "phone" ? "tel" : type}
+        inputMode={type === "phone" ? "numeric" : type === "number" ? "decimal" : undefined}
         className="admin-input mt-2"
         disabled={field.readOnly}
       />

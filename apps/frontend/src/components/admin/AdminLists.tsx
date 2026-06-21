@@ -113,7 +113,7 @@ export function ExportLink({ formId }: { formId: number }) {
     const href = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = `campaign-${formId}-responses.xlsx`;
+    anchor.download = filenameFromDisposition(response.headers.get("Content-Disposition")) || `campaign-${formId}-responses.xlsx`;
     anchor.click();
     window.URL.revokeObjectURL(href);
     toast.success("Campaign responses exported.");
@@ -125,6 +125,12 @@ export function ExportLink({ formId }: { formId: number }) {
       Export
     </button>
   );
+}
+
+function filenameFromDisposition(disposition: string | null) {
+  if (!disposition) return "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1] || "";
 }
 
 export function PublicLink({ href }: { href: string }) {

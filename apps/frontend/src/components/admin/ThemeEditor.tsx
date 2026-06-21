@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAdminToast } from "@/components/admin/AdminToasts";
 import { ApiError, adminFetch, flattenApiErrors, formatApiError } from "@/lib/api";
+import { phoneInputValue, validateTypedFields } from "@/lib/formValidation";
 import type { BrandSettings } from "@/types/cms";
 
 type CtaStyle = {
@@ -37,12 +38,44 @@ export function ThemeEditor() {
       });
   }, [toast]);
 
+  function setFieldError(name: string, error = "") {
+    setErrors((current) => {
+      if (!error && !(name in current)) return current;
+      const next = { ...current };
+      if (error) {
+        next[name] = error;
+      } else {
+        delete next[name];
+      }
+      return next;
+    });
+  }
+
   async function save() {
     if (!brand) return;
     if (saving) return;
     setStatus("Saving...");
     setSaving(true);
     setErrors({});
+    const clientErrors = validateTypedFields(
+      [
+        { name: "site_title", label: "Site title", fieldType: "text", required: true },
+        { name: "tagline", label: "Tagline", fieldType: "text", required: true },
+        { name: "essence", label: "Essence", fieldType: "textarea", required: true },
+        { name: "heading_font", label: "Heading font", fieldType: "text", required: true },
+        { name: "body_font", label: "Body font", fieldType: "text", required: true },
+        { name: "contact_email", label: "Email", fieldType: "email" },
+        { name: "phone", label: "Phone", fieldType: "phone" }
+      ],
+      (name) => brand[name as keyof BrandSettings]
+    );
+    if (Object.keys(clientErrors).length) {
+      setErrors(clientErrors);
+      setStatus("Please check the highlighted fields and try again.");
+      toast.error("Please check the highlighted fields and try again.");
+      setSaving(false);
+      return;
+    }
     const formData = new FormData();
     const payload = {
         site_title: brand.site_title,
@@ -96,21 +129,30 @@ export function ThemeEditor() {
     <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
       <section className="border border-champagne/30 bg-ivory p-6">
         <div className="grid gap-5">
-          <TextField label="Site title" value={brand.site_title} error={errors.site_title} onChange={(value) => setBrand({ ...brand, site_title: value })} />
-          <TextField label="Tagline" value={brand.tagline} error={errors.tagline} onChange={(value) => setBrand({ ...brand, tagline: value })} />
-          <TextArea label="Essence" value={brand.essence} error={errors.essence} onChange={(value) => setBrand({ ...brand, essence: value })} />
+          <TextField label="Site title" value={brand.site_title} error={errors.site_title} required onChange={(value) => setBrand({ ...brand, site_title: value })} />
+          <TextField label="Tagline" value={brand.tagline} error={errors.tagline} required onChange={(value) => setBrand({ ...brand, tagline: value })} />
+          <TextArea label="Essence" value={brand.essence} error={errors.essence} required onChange={(value) => setBrand({ ...brand, essence: value })} />
           <TextArea label="Mission statement" value={brand.mission_statement} error={errors.mission_statement} onChange={(value) => setBrand({ ...brand, mission_statement: value })} />
           <div className="grid gap-5 md:grid-cols-2">
-            <TextField label="Heading font" value={brand.heading_font} error={errors.heading_font} onChange={(value) => setBrand({ ...brand, heading_font: value })} />
-            <TextField label="Body font" value={brand.body_font} error={errors.body_font} onChange={(value) => setBrand({ ...brand, body_font: value })} />
+            <TextField label="Heading font" value={brand.heading_font} error={errors.heading_font} required onChange={(value) => setBrand({ ...brand, heading_font: value })} />
+            <TextField label="Body font" value={brand.body_font} error={errors.body_font} required onChange={(value) => setBrand({ ...brand, body_font: value })} />
           </div>
           <div className="grid gap-5 md:grid-cols-2">
             <FileField label="Logo image" onChange={(file) => setFiles((current) => ({ ...current, logo_image: file }))} />
             <FileField label="Favicon" onChange={(file) => setFiles((current) => ({ ...current, favicon: file }))} />
           </div>
           <div className="grid gap-5 md:grid-cols-2">
-            <TextField label="Email" value={brand.contact_email} error={errors.contact_email} onChange={(value) => setBrand({ ...brand, contact_email: value })} />
-            <TextField label="Phone" value={brand.phone} error={errors.phone} onChange={(value) => setBrand({ ...brand, phone: value })} />
+            <TextField label="Email" type="email" value={brand.contact_email} error={errors.contact_email} onChange={(value) => setBrand({ ...brand, contact_email: value })} />
+            <TextField
+              label="Phone"
+              type="phone"
+              value={brand.phone}
+              error={errors.phone}
+              onChange={(value, inlineError) => {
+                setBrand({ ...brand, phone: value });
+                setFieldError("phone", inlineError);
+              }}
+            />
             <TextField label="Instagram" value={brand.instagram_handle} error={errors.instagram_handle} onChange={(value) => setBrand({ ...brand, instagram_handle: value })} />
           </div>
           <TextArea label="Address" value={brand.address} error={errors.address} onChange={(value) => setBrand({ ...brand, address: value })} />
@@ -149,20 +191,53 @@ export function ThemeEditor() {
   );
 }
 
-function TextField({ label, value, error, onChange }: { label: string; value: string; error?: string; onChange: (value: string) => void }) {
+function TextField({
+  label,
+  value,
+  error,
+  type = "text",
+  required = false,
+  onChange
+}: {
+  label: string;
+  value: string;
+  error?: string;
+  type?: "text" | "email" | "phone";
+  required?: boolean;
+  onChange: (value: string, inlineError?: string) => void;
+}) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 outline-none focus:border-champagne" />
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <input
+        value={value}
+        onChange={(event) => {
+          if (type === "phone") {
+            const next = phoneInputValue(event.target.value);
+            onChange(next.value, next.error);
+            return;
+          }
+          onChange(event.target.value);
+        }}
+        type={type === "phone" ? "tel" : type}
+        inputMode={type === "phone" ? "numeric" : undefined}
+        className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 outline-none focus:border-champagne"
+      />
       {error && <span className="mt-2 block text-sm font-semibold text-red-700">{error}</span>}
     </label>
   );
 }
 
-function TextArea({ label, value, error, onChange }: { label: string; value: string; error?: string; onChange: (value: string) => void }) {
+function TextArea({ label, value, error, required = false, onChange }: { label: string; value: string; error?: string; required?: boolean; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/62">
+        {label}
+        {required ? " *" : ""}
+      </span>
       <textarea value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 min-h-28 w-full border border-champagne/35 bg-white px-4 py-3 outline-none focus:border-champagne" />
       {error && <span className="mt-2 block text-sm font-semibold text-red-700">{error}</span>}
     </label>

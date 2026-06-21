@@ -4,7 +4,6 @@ from io import BytesIO
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from openpyxl import Workbook
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
@@ -15,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.image_variants import ensure_image_variants
+from apps.campaigns.exports import build_campaign_responses_workbook
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
 from apps.campaigns.serializers import (
     CampaignFormFieldSerializer,
@@ -89,23 +89,7 @@ class CampaignFormViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="responses/export")
     def export_responses(self, request, pk=None):
         form = self.get_object()
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "Responses"
-
-        fields = list(form.fields.order_by("ordering", "id"))
-        headers = ["Submitted At", "Response ID"] + [field.label for field in fields]
-        sheet.append(headers)
-
-        for item in form.responses.order_by("submitted_at"):
-            row = [item.submitted_at.isoformat(), item.id]
-            for field in fields:
-                value = item.response_data.get(field.key, "")
-                if isinstance(value, list):
-                    value = ", ".join(str(part) for part in value)
-                row.append(value)
-            sheet.append(row)
-
+        workbook = build_campaign_responses_workbook(form)
         output = BytesIO()
         workbook.save(output)
         output.seek(0)

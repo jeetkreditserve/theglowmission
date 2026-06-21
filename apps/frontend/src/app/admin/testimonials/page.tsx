@@ -30,9 +30,9 @@ export default function AdminTestimonialsPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "name", label: "Name" },
+          { name: "name", label: "Name", required: true },
           { name: "role", label: "Role" },
-          { name: "quote", label: "Quote", type: "textarea", span: "full" },
+          { name: "quote", label: "Quote", type: "textarea", span: "full", required: true },
           { name: "is_anonymized", label: "Show as anonymized client note", type: "checkbox", span: "full" },
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }

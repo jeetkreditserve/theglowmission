@@ -3,10 +3,12 @@ from __future__ import annotations
 import re
 
 from django.core.validators import validate_email
+from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from rest_framework import serializers
 
 from apps.common.image_variants import image_variant_set
+from apps.common.form_validation import validate_digit_phone
 from apps.common.storage import file_key, file_url
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
 
@@ -59,6 +61,11 @@ class CampaignFormFieldSerializer(serializers.ModelSerializer):
         field_type = attrs.get("field_type", getattr(self.instance, "field_type", CampaignFormField.FieldType.TEXT))
         active = attrs.get("active", getattr(self.instance, "active", True))
         options = attrs.get("options", getattr(self.instance, "options", [])) or []
+        validation = attrs.get("validation", getattr(self.instance, "validation", {})) or {}
+        if not isinstance(validation, dict):
+            raise serializers.ValidationError({"validation": "Validation rules must be a JSON object."})
+        if not isinstance(options, list):
+            raise serializers.ValidationError({"options": "Options must be a list."})
         if active and field_type in {CampaignFormField.FieldType.SELECT, CampaignFormField.FieldType.RADIO} and not options:
             raise serializers.ValidationError({"options": "Add at least one option for select and radio fields."})
 
@@ -193,9 +200,11 @@ class CampaignFormResponseSerializer(serializers.ModelSerializer):
 
 
 class PublicCampaignResponseSerializer(serializers.Serializer):
-    response_data = serializers.DictField()
+    response_data = serializers.JSONField()
 
     def validate_response_data(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Response data must be an object.")
         form = self.context["form"]
         active_fields = list(form.fields.filter(active=True))
         cleaned = {}
@@ -203,7 +212,7 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
 
         for field in active_fields:
             raw = value.get(field.key)
-            if field.required and (raw is None or raw == "" or raw == []):
+            if self._is_required_missing(field, raw):
                 errors[field.key] = "This field is required."
                 continue
             if raw in (None, ""):
@@ -217,11 +226,20 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
                     validate_email(str(raw))
                 except Exception:
                     errors[field.key] = "Enter a valid email address."
+            elif field.field_type == CampaignFormField.FieldType.PHONE:
+                min_length = self._coerce_int((field.validation or {}).get("min_length"))
+                max_length = self._coerce_int((field.validation or {}).get("max_length"))
+                cleaned_value, phone_error = validate_digit_phone(raw, min_length=min_length, max_length=max_length)
+                if phone_error:
+                    errors[field.key] = phone_error
             elif field.field_type == CampaignFormField.FieldType.NUMBER:
                 try:
                     cleaned_value = float(raw)
                 except (TypeError, ValueError):
                     errors[field.key] = "Enter a valid number."
+            elif field.field_type == CampaignFormField.FieldType.DATE:
+                if parse_date(str(raw)) is None:
+                    errors[field.key] = "Enter a valid date."
             elif field.field_type in {CampaignFormField.FieldType.SELECT, CampaignFormField.FieldType.RADIO}:
                 options = field.options or []
                 if options and raw not in options:
@@ -240,6 +258,14 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
         if errors:
             raise serializers.ValidationError(errors)
         return cleaned
+
+    @staticmethod
+    def _is_required_missing(field: CampaignFormField, value) -> bool:
+        if not field.required:
+            return False
+        if field.field_type == CampaignFormField.FieldType.CHECKBOX:
+            return value is not True
+        return value is None or value == "" or value == []
 
     def _validate_custom_rules(self, field: CampaignFormField, value):
         validation = field.validation or {}

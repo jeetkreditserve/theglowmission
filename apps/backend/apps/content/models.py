@@ -13,6 +13,28 @@ class BrandSettings(TimeStampedModel):
     tagline = models.CharField(max_length=240, default="Glow, the natural way.")
     essence = models.TextField(default="Soft. Elegant. Timeless. Made to make you glow.")
     mission_statement = models.TextField(blank=True)
+    canonical_site_url = models.URLField(default="https://theglowmission.com")
+    seo_title = models.CharField(
+        max_length=180,
+        default="The Glow Mission | Natural Facial Rituals in Chandivali, Powai",
+    )
+    seo_description = models.TextField(
+        default=(
+            "The Glow Mission is a boutique facial wellness studio in Chandivali and Powai, Mumbai, "
+            "offering natural facial rituals, facial massage, face yoga, gua sha, and glow treatments."
+        )
+    )
+    business_description = models.TextField(
+        default=(
+            "The Glow Mission is a boutique facial wellness studio built around natural ingredients, "
+            "facial massage, face yoga, lifting techniques, calming rituals, and visible glow."
+        )
+    )
+    area_served = models.CharField(max_length=180, default="Chandivali, Powai, Mumbai, India")
+    same_as_links = models.JSONField(default=list, blank=True)
+    opening_hours = models.JSONField(default=list, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     logo_image = models.ImageField(upload_to="brand/", blank=True, null=True)
     favicon = models.ImageField(upload_to="brand/", blank=True, null=True)
     primary_color = models.CharField(max_length=16, default="#D9B88C")

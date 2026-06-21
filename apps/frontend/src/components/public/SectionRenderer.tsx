@@ -133,7 +133,11 @@ function ServiceBand({ section, services }: { section: PageSection; services: Se
               )}
               <div className="p-7">
                 {service.duration && <p className="text-xs font-bold uppercase tracking-[0.2em] text-champagne">{service.duration}</p>}
-                <h3 className="mt-4 font-display text-3xl leading-tight">{service.title}</h3>
+                <h3 className="mt-4 font-display text-3xl leading-tight">
+                  <Link href={`/glow-rituals/${service.slug}`} className="transition hover:text-champagne">
+                    {service.title}
+                  </Link>
+                </h3>
                 <p className="mt-4 text-sm leading-7 text-espresso/66">{service.short_description}</p>
                 {!!service.inclusions?.length && (
                   <ul className="mt-5 grid gap-2">
@@ -151,11 +155,9 @@ function ServiceBand({ section, services }: { section: PageSection; services: Se
                     {formatPrice(service.currency, service.sale_price_amount || service.price_amount) && <p className="font-display text-3xl">{formatPrice(service.currency, service.sale_price_amount || service.price_amount)}</p>}
                     {service.price_note && <p className="mt-1 text-xs uppercase tracking-[0.14em] text-espresso/52">{service.price_note}</p>}
                   </div>
-                  {serviceHref(service) && (
-                    <Link href={serviceHref(service)} aria-label={service.cta_label || service.title} className="flex h-11 w-11 shrink-0 items-center justify-center bg-champagne text-espresso transition hover:bg-espresso hover:text-ivory">
+                  <Link href={`/glow-rituals/${service.slug}`} aria-label={`View ${service.title}`} className="flex h-11 w-11 shrink-0 items-center justify-center bg-champagne text-espresso transition hover:bg-espresso hover:text-ivory">
                       <ArrowRight size={17} />
-                    </Link>
-                  )}
+                  </Link>
                 </div>
               </div>
             </article>
@@ -331,12 +333,6 @@ function ctaClass(style: string | undefined, tone?: "dark") {
 
 function sectionEyebrow(section: PageSection) {
   return section.eyebrow;
-}
-
-function serviceHref(service: Service) {
-  if (service.cta_url) return service.cta_url;
-  if (service.booking_campaign_slug) return `/campaigns/${service.booking_campaign_slug}`;
-  return "";
 }
 
 function formatPrice(currency: string, value: string | null) {

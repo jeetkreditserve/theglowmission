@@ -180,6 +180,19 @@ class Command(BaseCommand):
         brand.tagline = "Natural facial rituals for a softer, calmer glow."
         brand.essence = "A boutique spa wellness experience for rested skin, lifted-feeling features, and a quieter mind."
         brand.mission_statement = BRAND_STORY
+        brand.canonical_site_url = os.environ.get("NEXT_PUBLIC_SITE_URL", "https://theglowmission.com")
+        brand.seo_title = "The Glow Mission | Natural Facial Rituals in Chandivali, Powai"
+        brand.seo_description = (
+            "The Glow Mission is a boutique facial wellness studio in Chandivali and Powai, Mumbai, "
+            "offering natural facial rituals, facial massage, face yoga, gua sha, and glow treatments."
+        )
+        brand.business_description = (
+            "The Glow Mission is a boutique facial wellness studio built around natural ingredients, facial massage, "
+            "face yoga, lifting techniques, calming rituals, and visible glow."
+        )
+        brand.area_served = "Chandivali, Powai, Mumbai, India"
+        brand.same_as_links = ["https://instagram.com/the.glow.mission"]
+        brand.opening_hours = []
         brand.primary_color = "#C9A46A"
         brand.background_color = "#FBF4EA"
         brand.surface_color = "#F4E7D8"
@@ -598,7 +611,7 @@ class Command(BaseCommand):
         fields = [
             ("Full name", "full_name", CampaignFormField.FieldType.TEXT, True, 0, "Your name"),
             ("Email", "email", CampaignFormField.FieldType.EMAIL, True, 1, "you@example.com"),
-            ("Phone", "phone", CampaignFormField.FieldType.PHONE, False, 2, "+91"),
+            ("Phone", "phone", CampaignFormField.FieldType.PHONE, False, 2, "10-digit phone number"),
             ("Preferred ritual", "preferred_ritual", CampaignFormField.FieldType.SELECT, True, 3, ""),
             ("Preferred day", "preferred_day", CampaignFormField.FieldType.TEXT, False, 4, "Weekday morning, weekend evening..."),
             ("What would you like help with?", "skin_goal", CampaignFormField.FieldType.TEXTAREA, False, 5, "Dullness, tension, puffiness, unevenness, dryness..."),
@@ -648,7 +661,6 @@ class Command(BaseCommand):
             "complimentary-facial-session-campaign.webp",
         )
         form.save()
-        phone_pattern = r"(?:\+91[\s-]?)?[6-9]\d(?:[\s-]?\d){8}"
         fields = [
             {
                 "label": "Full name",
@@ -665,8 +677,8 @@ class Command(BaseCommand):
                 "field_type": CampaignFormField.FieldType.PHONE,
                 "required": True,
                 "ordering": 1,
-                "placeholder": "+91",
-                "validation": {"pattern": phone_pattern},
+                "placeholder": "10-digit phone number",
+                "validation": {},
             },
             {
                 "label": "Email",

@@ -3,18 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiBaseUrl } from "@/lib/api";
+import { validateTypedField } from "@/lib/formValidation";
 
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
     setError("");
+    setEmailError("");
+    const nextEmailError = validateTypedField({ name: "email", label: "Email", fieldType: "email", required: true }, email);
+    if (nextEmailError) {
+      setEmailError(nextEmailError);
+      setError("Please check the highlighted fields and try again.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+    setLoading(true);
     const response = await fetch(`${apiBaseUrl()}/auth/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,7 +47,17 @@ export function LoginForm() {
     <form onSubmit={submit} className="space-y-5">
       <label className="block">
         <span className="text-sm font-semibold uppercase tracking-[0.16em] text-espresso/70">Email</span>
-        <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required className="mt-3 w-full border border-champagne/35 bg-ivory px-4 py-4 outline-none focus:border-champagne" />
+        <input
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            setEmailError("");
+          }}
+          type="email"
+          required
+          className="mt-3 w-full border border-champagne/35 bg-ivory px-4 py-4 outline-none focus:border-champagne"
+        />
+        {emailError && <span className="mt-2 block text-sm font-semibold text-red-700">{emailError}</span>}
       </label>
       <label className="block">
         <span className="text-sm font-semibold uppercase tracking-[0.16em] text-espresso/70">Password</span>
@@ -47,4 +70,3 @@ export function LoginForm() {
     </form>
   );
 }
-

@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 import { CampaignFormClient } from "@/components/public/CampaignFormClient";
 import { Footer } from "@/components/public/Footer";
 import { BrandTheme } from "@/components/public/BrandTheme";
+import { JsonLd } from "@/components/public/JsonLd";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 import { fallbackBrand, getBrandSettings, getCampaignForm, getNavigationItems } from "@/lib/api";
+import { pageMetadata } from "@/lib/metadata";
+import { breadcrumbJsonLd, localBusinessJsonLd, organizationJsonLd, webPageJsonLd, websiteJsonLd } from "@/lib/structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +15,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const form = await getCampaignForm(slug).catch(() => null);
   if (!form) return {};
-  return {
-    title: form.seo_title || form.title,
-    description: form.seo_description || form.summary || undefined
-  };
+  return pageMetadata({
+    title: form.seo_title || `${form.title} | The Glow Mission`,
+    description: form.seo_description || form.summary || undefined,
+    path: `/campaigns/${form.slug}`,
+    image: form.hero_image_url
+  });
 }
 
 export default async function CampaignPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -31,6 +36,22 @@ export default async function CampaignPage({ params }: { params: Promise<{ slug:
 
   return (
     <BrandTheme brand={brand}>
+      <JsonLd
+        data={[
+          organizationJsonLd(brand),
+          localBusinessJsonLd(brand),
+          websiteJsonLd(brand),
+          webPageJsonLd({
+            title: form.seo_title || form.title,
+            description: form.seo_description || form.summary,
+            path: `/campaigns/${form.slug}`
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: form.title, path: `/campaigns/${form.slug}` }
+          ])
+        ]}
+      />
       <PublicHeader brand={brand} navigationItems={navigationItems} />
       <main className="bg-espresso text-ivory">
         <section className="mx-auto grid min-h-[calc(100vh-78px)] max-w-7xl gap-12 px-5 py-20 md:grid-cols-[0.9fr_1.1fr] md:items-center lg:px-8">

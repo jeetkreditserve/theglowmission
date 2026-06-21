@@ -24,6 +24,7 @@ AWS_S3_REGION_NAME=ap-south-1
 AWS_MEDIA_LOCATION=media
 AWS_SEED_ASSET_LOCATION=seed-assets
 AWS_PRESIGNED_URL_EXPIRE_SECONDS=900
+NEXT_PUBLIC_SITE_URL=https://theglowmission.com
 ADMIN_EMAIL=admin@theglowmission.local
 ADMIN_PASSWORD=change-me-now
 ```
@@ -59,6 +60,8 @@ Public:
 - `GET /api/v1/public/brand-settings/`
 - `GET /api/v1/public/pages/{slug}/`
 - `GET /api/v1/public/services/`
+- `GET /api/v1/public/services/{slug}/`
+- `GET /api/v1/public/seo-index/`
 - `GET /api/v1/public/gallery/`
 - `GET /api/v1/public/campaign-forms/{slug}/`
 - `POST /api/v1/public/campaign-forms/{slug}/responses/`
@@ -100,4 +103,3 @@ python3 -m compileall apps/backend
 ```
 
 Full backend runtime checks require installing Python dependencies and setting a live PostgreSQL and S3 environment. The Docker path is the source of truth.
-

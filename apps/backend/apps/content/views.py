@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.image_variants import ensure_image_variants
+from apps.campaigns.models import CampaignForm
 from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, SiteNavigationItem, Testimonial
 from apps.content.serializers import (
     BrandSettingsSerializer,
@@ -54,6 +55,68 @@ class PublicServiceListView(ListAPIView):
 
     def get_queryset(self):
         return Service.objects.filter(active=True)
+
+
+class PublicServiceDetailView(RetrieveAPIView):
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = ServiceSerializer
+    lookup_field = "slug"
+    lookup_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return Service.objects.filter(active=True)
+
+
+class PublicSeoIndexView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        items = []
+        for page in Page.objects.filter(status=Page.Status.PUBLISHED).order_by("ordering", "title"):
+            path = "/" if page.slug == "home" else f"/{page.slug}"
+            items.append(
+                {
+                    "path": path,
+                    "title": page.seo_title or page.title,
+                    "description": page.seo_description,
+                    "type": "page",
+                    "updated_at": page.updated_at,
+                    "priority": 1.0 if page.slug == "home" else 0.8,
+                    "image_url": None,
+                }
+            )
+
+        for service in Service.objects.filter(active=True).order_by("ordering", "title"):
+            items.append(
+                {
+                    "path": f"/glow-rituals/{service.slug}",
+                    "title": f"{service.title} | The Glow Mission",
+                    "description": service.short_description,
+                    "type": "service",
+                    "updated_at": service.updated_at,
+                    "priority": 0.75,
+                    "image_url": ServiceSerializer(service, context={"request": request}).data.get("image_url"),
+                }
+            )
+
+        for form in CampaignForm.objects.filter(status=CampaignForm.Status.PUBLISHED).order_by("-updated_at"):
+            if not form.is_active_now:
+                continue
+            items.append(
+                {
+                    "path": f"/campaigns/{form.slug}",
+                    "title": form.seo_title or form.title,
+                    "description": form.seo_description or form.summary,
+                    "type": "campaign",
+                    "updated_at": form.updated_at,
+                    "priority": 0.65,
+                    "image_url": None,
+                }
+            )
+
+        return Response(items)
 
 
 class PublicHeroSlideListView(ListAPIView):

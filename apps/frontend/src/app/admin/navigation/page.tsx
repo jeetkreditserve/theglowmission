@@ -40,12 +40,13 @@ export default function AdminNavigationPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "label", label: "Label" },
-          { name: "url", label: "URL" },
+          { name: "label", label: "Label", required: true },
+          { name: "url", label: "URL", required: true },
           {
             name: "placement",
             label: "Placement",
             type: "select",
+            required: true,
             options: [
               { label: "Header navigation", value: "header" },
               { label: "Header CTA", value: "header_cta" },
@@ -59,6 +60,7 @@ export default function AdminNavigationPage() {
             name: "style",
             label: "Style",
             type: "select",
+            required: true,
             options: [
               { label: "Link", value: "link" },
               { label: "Primary button", value: "primary" },

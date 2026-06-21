@@ -13,13 +13,15 @@ from apps.content.views import (
     PublicFAQListView,
     PublicGalleryListView,
     PublicHeroSlideListView,
+    PublicNavigationListView,
     PublicPageView,
+    PublicSeoIndexView,
+    PublicServiceDetailView,
     PublicServiceListView,
     PublicTestimonialListView,
     ServiceViewSet,
     SiteNavigationItemViewSet,
     TestimonialViewSet,
-    PublicNavigationListView,
 )
 
 router = DefaultRouter()
@@ -39,6 +41,8 @@ urlpatterns = [
     path("public/hero-slides/", PublicHeroSlideListView.as_view(), name="public-hero-slides"),
     path("public/pages/<slug:slug>/", PublicPageView.as_view(), name="public-page"),
     path("public/services/", PublicServiceListView.as_view(), name="public-services"),
+    path("public/services/<slug:slug>/", PublicServiceDetailView.as_view(), name="public-service"),
+    path("public/seo-index/", PublicSeoIndexView.as_view(), name="public-seo-index"),
     path("public/gallery/", PublicGalleryListView.as_view(), name="public-gallery"),
     path("public/faqs/", PublicFAQListView.as_view(), name="public-faqs"),
     path("public/testimonials/", PublicTestimonialListView.as_view(), name="public-testimonials"),

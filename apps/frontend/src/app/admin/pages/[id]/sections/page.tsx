@@ -71,6 +71,7 @@ export default function AdminPageSectionsPage() {
             name: "section_type",
             label: "Section type",
             type: "select",
+            required: true,
             options: [
               { label: "Hero", value: "hero" },
               { label: "Story", value: "story" },

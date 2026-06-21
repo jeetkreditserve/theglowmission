@@ -1,4 +1,4 @@
-import type { BrandSettings, CampaignForm, FAQ, GalleryImage, HeroSlide, Page, Service, SiteNavigationItem, Testimonial } from "@/types/cms";
+import type { BrandSettings, CampaignForm, FAQ, GalleryImage, HeroSlide, Page, SeoIndexItem, Service, SiteNavigationItem, Testimonial } from "@/types/cms";
 
 const serverBaseUrl = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000/api/v1";
 const browserBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
@@ -55,6 +55,14 @@ export async function getHeroSlides() {
 
 export async function getServices() {
   return apiFetch<Service[]>("/public/services/");
+}
+
+export async function getService(slug: string) {
+  return apiFetch<Service>(`/public/services/${slug}/`);
+}
+
+export async function getSeoIndex() {
+  return apiFetch<SeoIndexItem[]>("/public/seo-index/");
 }
 
 export async function getGallery() {
@@ -160,6 +168,17 @@ export function fallbackBrand(): BrandSettings {
     essence: "Soft. Elegant. Timeless. Made to make you glow.",
     mission_statement:
       "A mission of care, confidence, visible glow, and natural beauty. Every ritual is shaped around natural ingredients, facial massage, sculpting touch, and calming skin care.",
+    canonical_site_url: "https://theglowmission.com",
+    seo_title: "The Glow Mission | Natural Facial Rituals in Chandivali, Powai",
+    seo_description:
+      "The Glow Mission is a boutique facial wellness studio in Chandivali and Powai, Mumbai, offering natural facial rituals, facial massage, face yoga, gua sha, and glow treatments.",
+    business_description:
+      "The Glow Mission is a boutique facial wellness studio built around natural ingredients, facial massage, face yoga, lifting techniques, calming rituals, and visible glow.",
+    area_served: "Chandivali, Powai, Mumbai, India",
+    same_as_links: ["https://instagram.com/the.glow.mission"],
+    opening_hours: [],
+    latitude: null,
+    longitude: null,
     logo_url: null,
     logo_key: null,
     favicon_url: null,

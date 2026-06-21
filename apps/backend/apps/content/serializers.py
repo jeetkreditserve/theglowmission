@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import serializers
 from django.utils.text import slugify
 
+from apps.common.form_validation import validate_digit_phone
 from apps.common.image_variants import image_variant_set
 from apps.common.storage import file_key, file_url
 from apps.content.models import (
@@ -46,6 +47,15 @@ class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
             "tagline",
             "essence",
             "mission_statement",
+            "canonical_site_url",
+            "seo_title",
+            "seo_description",
+            "business_description",
+            "area_served",
+            "same_as_links",
+            "opening_hours",
+            "latitude",
+            "longitude",
             "logo_image",
             "logo_url",
             "logo_key",
@@ -93,6 +103,12 @@ class BrandSettingsSerializer(S3FileMixin, serializers.ModelSerializer):
 
     def get_favicon_variants(self, obj):
         return self.get_variants_for(obj, "favicon")
+
+    def validate_phone(self, value):
+        cleaned, error = validate_digit_phone(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return cleaned
 
 
 class HeroSlideSerializer(S3FileMixin, serializers.ModelSerializer):

@@ -30,7 +30,7 @@ export default function AdminGalleryPage() {
           { label: "Order", value: (item) => item.ordering }
         ]}
         fields={[
-          { name: "title", label: "Title" },
+          { name: "title", label: "Title", required: true },
           { name: "image", label: "Image", type: "image", span: "full" },
           { name: "alt_text", label: "Alt text", span: "full" },
           { name: "caption", label: "Caption", type: "textarea", span: "full" },
