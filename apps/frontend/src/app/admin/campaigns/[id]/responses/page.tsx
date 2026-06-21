@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Eye, X } from "lucide-react";
+import { ArrowLeft, Eye, X } from "lucide-react";
+import { CampaignActions } from "@/components/admin/CampaignActions";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { ExportLink } from "@/components/admin/AdminLists";
 import { adminFetch } from "@/lib/api";
 
 type CampaignField = {
@@ -18,6 +19,7 @@ type CampaignField = {
 type CampaignFormDetail = {
   id: number;
   title: string;
+  slug: string;
   fields: CampaignField[];
 };
 
@@ -74,7 +76,13 @@ export default function CampaignResponsesPage() {
             <h2 className="font-display text-3xl text-espresso">{form?.title || "Responses"}</h2>
             <p className="mt-2 text-sm text-espresso/60">{responses.length} entries</p>
           </div>
-          <ExportLink formId={formId} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/admin/campaign-responses" className="admin-icon-link">
+              <ArrowLeft size={15} />
+              All responses
+            </Link>
+            {form && <CampaignActions campaign={{ id: form.id, slug: form.slug }} compact />}
+          </div>
         </div>
 
         {loading && <div className="border border-champagne/30 bg-ivory p-8 text-sm text-espresso/65">Loading responses...</div>}

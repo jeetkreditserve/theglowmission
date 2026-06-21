@@ -44,7 +44,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} noValidate className="space-y-5">
       <label className="block">
         <span className="text-sm font-semibold uppercase tracking-[0.16em] text-espresso/70">Email</span>
         <input
@@ -53,8 +53,8 @@ export function LoginForm() {
             setEmail(event.target.value);
             setEmailError("");
           }}
-          type="email"
-          required
+          type="text"
+          inputMode="email"
           className="mt-3 w-full border border-champagne/35 bg-ivory px-4 py-4 outline-none focus:border-champagne"
         />
         {emailError && <span className="mt-2 block text-sm font-semibold text-red-700">{emailError}</span>}

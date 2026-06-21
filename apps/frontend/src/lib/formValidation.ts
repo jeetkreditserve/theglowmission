@@ -33,7 +33,7 @@ export function phoneInputValue(value: string) {
   const digits = stripPhoneDigits(value);
   return {
     value: digits,
-    error: digits === value ? "" : PHONE_NUMERIC_MESSAGE
+    hadNonDigits: digits !== value
   };
 }
 

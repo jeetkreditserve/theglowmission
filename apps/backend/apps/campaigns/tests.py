@@ -7,7 +7,7 @@ from openpyxl import load_workbook
 
 from apps.campaigns.exports import build_campaign_responses_workbook
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
-from apps.campaigns.serializers import PublicCampaignResponseSerializer
+from apps.campaigns.serializers import CampaignFormResponseSerializer, PublicCampaignResponseSerializer
 
 
 class CampaignResponseValidationTests(TestCase):
@@ -124,3 +124,18 @@ class CampaignExportWorkbookTests(TestCase):
         self.assertEqual(sheet.freeze_panes, "B7")
         self.assertEqual(sheet.auto_filter.ref, "A6:D7")
         self.assertGreaterEqual(sheet.column_dimensions["C"].width, len("Full name"))
+
+
+class CampaignResponseSerializerTests(TestCase):
+    def test_admin_response_includes_campaign_metadata(self):
+        form = CampaignForm.objects.create(
+            title="Complimentary Facial Session",
+            slug="complimentary-facial-session",
+            status=CampaignForm.Status.PUBLISHED,
+        )
+        response = CampaignFormResponse.objects.create(form=form, response_data={"email": "client@example.com"})
+
+        data = CampaignFormResponseSerializer(response).data
+
+        self.assertEqual(data["form_title"], "Complimentary Facial Session")
+        self.assertEqual(data["form_slug"], "complimentary-facial-session")

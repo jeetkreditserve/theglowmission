@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, GalleryHorizontalEnd, HelpCircle, Images, LayoutDashboard, Link2, LogOut, MessageSquareQuote, Palette, Sparkles, SquarePen, View } from "lucide-react";
+import { FileText, GalleryHorizontalEnd, HelpCircle, Images, Inbox, LayoutDashboard, Link2, LogOut, MessageSquareQuote, Palette, Sparkles, SquarePen, View } from "lucide-react";
 import { AdminToastProvider } from "@/components/admin/AdminToasts";
 
 const navItems = [
@@ -17,7 +17,8 @@ const navItems = [
   { label: "Media", href: "/admin/media", icon: Images },
   { label: "FAQs", href: "/admin/faqs", icon: HelpCircle },
   { label: "Testimonials", href: "/admin/testimonials", icon: MessageSquareQuote },
-  { label: "Campaigns", href: "/admin/campaigns", icon: SquarePen }
+  { label: "Campaigns", href: "/admin/campaigns", icon: SquarePen },
+  { label: "Responses", href: "/admin/campaign-responses", icon: Inbox }
 ];
 
 export function AdminShell({ title, children }: { title: string; children: React.ReactNode }) {

@@ -193,9 +193,12 @@ class PublicCampaignFormSerializer(S3FileMixin, serializers.ModelSerializer):
 
 
 class CampaignFormResponseSerializer(serializers.ModelSerializer):
+    form_title = serializers.CharField(source="form.title", read_only=True)
+    form_slug = serializers.CharField(source="form.slug", read_only=True)
+
     class Meta:
         model = CampaignFormResponse
-        fields = ["id", "form", "submitted_at", "response_data", "metadata", "field_snapshot", "created_at"]
+        fields = ["id", "form", "form_title", "form_slug", "submitted_at", "response_data", "metadata", "field_snapshot", "created_at"]
         read_only_fields = ["submitted_at", "created_at"]
 
 

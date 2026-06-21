@@ -148,9 +148,9 @@ export function ThemeEditor() {
               type="phone"
               value={brand.phone}
               error={errors.phone}
-              onChange={(value, inlineError) => {
+              onChange={(value) => {
                 setBrand({ ...brand, phone: value });
-                setFieldError("phone", inlineError);
+                setFieldError("phone");
               }}
             />
             <TextField label="Instagram" value={brand.instagram_handle} error={errors.instagram_handle} onChange={(value) => setBrand({ ...brand, instagram_handle: value })} />
@@ -217,13 +217,13 @@ function TextField({
         onChange={(event) => {
           if (type === "phone") {
             const next = phoneInputValue(event.target.value);
-            onChange(next.value, next.error);
+            onChange(next.value);
             return;
           }
           onChange(event.target.value);
         }}
-        type={type === "phone" ? "tel" : type}
-        inputMode={type === "phone" ? "numeric" : undefined}
+        type="text"
+        inputMode={type === "email" ? "email" : type === "phone" ? "numeric" : undefined}
         className="mt-2 w-full border border-champagne/35 bg-white px-4 py-3 outline-none focus:border-champagne"
       />
       {error && <span className="mt-2 block text-sm font-semibold text-red-700">{error}</span>}

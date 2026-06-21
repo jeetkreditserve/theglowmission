@@ -98,7 +98,7 @@ export function EditLink({ href }: { href: string }) {
   );
 }
 
-export function ExportLink({ formId }: { formId: number }) {
+export function ExportLink({ formId, className = "inline-flex items-center gap-2 text-sm font-semibold text-espresso" }: { formId: number; className?: string }) {
   const toast = useAdminToast();
 
   async function download() {
@@ -120,7 +120,7 @@ export function ExportLink({ formId }: { formId: number }) {
   }
 
   return (
-    <button type="button" onClick={download} className="inline-flex items-center gap-2 text-sm font-semibold text-espresso">
+    <button type="button" onClick={download} className={className}>
       <Download size={15} />
       Export
     </button>

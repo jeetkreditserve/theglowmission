@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminResourceManager } from "@/components/admin/AdminResourceManager";
 import { ExportLink } from "@/components/admin/AdminLists";
@@ -71,8 +72,7 @@ export default function AdminCampaignsPage() {
               </Link>
             )
           },
-          { label: "Active now", value: (item) => (item.is_active_now ? "Yes" : "No") },
-          { label: "Export", value: (item) => <ExportLink formId={item.id} /> }
+          { label: "Active now", value: (item) => (item.is_active_now ? "Yes" : "No") }
         ]}
         fields={[
           { name: "title", label: "Title", required: true },
@@ -106,7 +106,18 @@ export default function AdminCampaignsPage() {
           { name: "seo_description", label: "SEO description", type: "textarea", span: "full" }
         ]}
         getEditHref={(item) => `/admin/campaigns/${item.id}/builder`}
+        getEditLabel="Builder"
         getPreviewHref={(item) => `/campaigns/${item.slug}`}
+        getPreviewLabel="Preview"
+        extraActions={(item) => (
+          <>
+            <Link href={`/admin/campaigns/${item.id}/responses`} className="admin-icon-link">
+              <FileText size={15} />
+              Responses
+            </Link>
+            <ExportLink formId={item.id} className="admin-icon-link" />
+          </>
+        )}
       />
     </AdminShell>
   );

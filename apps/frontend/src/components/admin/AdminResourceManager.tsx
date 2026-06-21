@@ -76,7 +76,10 @@ export function AdminResourceManager<T extends { id: number }>({
   getEditHref,
   transformPayload,
   createLabel = "New item",
-  queryKey
+  queryKey,
+  getEditLabel = "Open",
+  getPreviewLabel = "View",
+  extraActions
 }: {
   path: string;
   title: string;
@@ -89,6 +92,9 @@ export function AdminResourceManager<T extends { id: number }>({
   transformPayload?: (payload: Record<string, unknown>) => Record<string, unknown>;
   createLabel?: string;
   queryKey?: string;
+  getEditLabel?: string;
+  getPreviewLabel?: string;
+  extraActions?: (item: T) => React.ReactNode;
 }) {
   const [items, setItems] = useState<T[]>([]);
   const [draft, setDraft] = useState<Partial<T> | null>(null);
@@ -376,13 +382,14 @@ export function AdminResourceManager<T extends { id: number }>({
                         {getEditHref && (
                           <Link href={getEditHref(item)} className="admin-icon-link">
                             <ExternalLink size={15} />
-                            Open
+                            {getEditLabel}
                           </Link>
                         )}
+                        {extraActions?.(item)}
                         {getPreviewHref && (
                           <Link href={getPreviewHref(item)} className="admin-icon-link" target="_blank">
                             <ExternalLink size={15} />
-                            View
+                            {getPreviewLabel}
                           </Link>
                         )}
                         <button onClick={() => remove(item)} type="button" className="admin-icon-link text-red-700">
@@ -507,14 +514,14 @@ function FieldInput<T>({
         onChange={(event) => {
           if (type === "phone") {
             const next = phoneInputValue(event.target.value);
-            onChange(field.name, next.value, next.error);
+            onChange(field.name, next.value);
             return;
           }
           onChange(field.name, event.target.value);
         }}
         placeholder={field.placeholder}
-        type={type === "datetime" ? "datetime-local" : type === "phone" ? "tel" : type}
-        inputMode={type === "phone" ? "numeric" : type === "number" ? "decimal" : undefined}
+        type={type === "datetime" ? "datetime-local" : type === "date" ? "date" : "text"}
+        inputMode={type === "email" ? "email" : type === "phone" ? "numeric" : type === "number" ? "decimal" : undefined}
         className="admin-input mt-2"
         disabled={field.readOnly}
       />
