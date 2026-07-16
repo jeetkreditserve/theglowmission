@@ -28,7 +28,7 @@ export async function GET() {
           const price = service.price_amount ? `, ${service.currency} ${Number(service.price_amount).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "";
           return `- ${service.title} (${service.duration}${price}): ${service.short_description} ${absoluteUrl(`/glow-rituals/${service.slug}`)}`;
         })
-      : ["- The ritual menu includes natural facial sessions from 40 to 95 minutes."]),
+      : ["- The ritual menu includes natural facial sessions from 50 to 90 minutes."]),
     "",
     "## Important Topic Pages",
     ...seoPages.map((page) => `- ${page.h1}: ${absoluteUrl(`/${page.slug}`)}`),

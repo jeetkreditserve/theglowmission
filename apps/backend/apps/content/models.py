@@ -215,6 +215,7 @@ class Service(TimeStampedModel):
     featured = models.BooleanField(default=False)
     cta_label = models.CharField(max_length=120, default="Book this ritual")
     cta_url = models.CharField(max_length=240, blank=True)
+    calendly_event_url = models.URLField(max_length=300, blank=True)
     booking_campaign = models.ForeignKey(
         "campaigns.CampaignForm",
         related_name="services",

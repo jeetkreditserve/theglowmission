@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from apps.contacts.exports import build_contacts_workbook
 from apps.contacts.models import Contact, ContactAuditEvent, ContactNote, ContactStatus
-from apps.contacts.serializers import ContactNoteSerializer, ContactSerializer, ContactStatusSerializer
+from apps.contacts.serializers import ContactNoteSerializer, ContactSerializer, ContactStatusSerializer, ContactSummarySerializer
 from apps.contacts.services import CONTACT_PROFILE_FIELDS, normalize_email, normalize_phone, refresh_contact_response_count
 
 
@@ -70,6 +70,11 @@ class ContactViewSet(viewsets.ModelViewSet):
     serializer_class = ContactSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["updated_at", "last_activity_at", "full_name", "email", "phone"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ContactSummarySerializer
+        return ContactSerializer
 
     def get_queryset(self):
         queryset = (

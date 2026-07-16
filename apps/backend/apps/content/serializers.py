@@ -270,6 +270,7 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
             "featured",
             "cta_label",
             "cta_url",
+            "calendly_event_url",
             "booking_campaign",
             "booking_campaign_slug",
             "active",
@@ -308,6 +309,19 @@ class ServiceSerializer(S3FileMixin, serializers.ModelSerializer):
 
     def get_image_variants(self, obj):
         return self.get_variants_for(obj, "image")
+
+
+class RitualBookingLeadSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=180, trim_whitespace=True)
+    phone = serializers.CharField(max_length=32, trim_whitespace=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    skin_goal = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+
+    def validate_phone(self, value):
+        cleaned, error = validate_digit_phone(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return cleaned
 
 
 class TestimonialSerializer(serializers.ModelSerializer):

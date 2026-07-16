@@ -6,6 +6,7 @@ import { Footer } from "@/components/public/Footer";
 import { JsonLd } from "@/components/public/JsonLd";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
+import { RitualBookingButton } from "@/components/public/RitualBookingButton";
 import { fallbackBrand, getBrandSettings, getNavigationItems, getService } from "@/lib/api";
 import { pageMetadata } from "@/lib/metadata";
 import { breadcrumbJsonLd, localBusinessJsonLd, organizationJsonLd, serviceJsonLd, webPageJsonLd, websiteJsonLd } from "@/lib/structured-data";
@@ -62,10 +63,10 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               <h1 className="mt-5 font-display text-5xl leading-tight md:text-7xl">{service.title}</h1>
               <p className="mt-6 max-w-2xl text-lg leading-9 text-ivory/76">{service.description || service.short_description}</p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link href={service.cta_url || "/campaigns/glow-consultation"} className="brand-button inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-espresso transition hover:bg-ivory">
+                <RitualBookingButton service={service} className="brand-button inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-espresso transition hover:bg-ivory">
                   Book this ritual
                   <ArrowRight size={15} />
-                </Link>
+                </RitualBookingButton>
                 <Link href="/glow-rituals" className="brand-button border-b border-champagne pb-2 text-sm font-bold uppercase tracking-[0.16em] text-ivory transition hover:text-champagne">
                   View all rituals
                 </Link>

@@ -54,13 +54,15 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
     setFieldError(field.key, validateTypedField(fieldRule(field), values[field.key]));
   }
 
+  const clientErrors = validateTypedFields(
+    form.fields.map(fieldRule),
+    (name) => values[name]
+  );
+  const canSubmit = Object.keys(clientErrors).length === 0;
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
-    const clientErrors = validateTypedFields(
-      form.fields.map(fieldRule),
-      (name) => values[name]
-    );
     if (Object.keys(clientErrors).length) {
       setStatus("error");
       setFieldErrors(clientErrors);
@@ -113,7 +115,7 @@ export function CampaignFormClient({ form }: { form: CampaignForm }) {
       ))}
       <button
         type="submit"
-        disabled={status === "submitting"}
+        disabled={status === "submitting" || !canSubmit}
         className="brand-button w-full bg-espresso px-7 py-4 text-sm font-bold text-ivory transition hover:bg-champagne hover:text-espresso disabled:opacity-60"
       >
         {status === "submitting" ? form.submitting_label || form.button_label : form.button_label}

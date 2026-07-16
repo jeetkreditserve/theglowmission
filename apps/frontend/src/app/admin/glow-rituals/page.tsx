@@ -23,6 +23,7 @@ type RitualItem = {
   featured: boolean;
   cta_label: string;
   cta_url: string;
+  calendly_event_url: string;
   active: boolean;
   ordering: number;
 };
@@ -41,7 +42,7 @@ export default function AdminGlowRitualsPage() {
           short_description: "",
           description: "",
           image_alt: "",
-          duration: "40 MINS",
+          duration: "50 MINS",
           session_count: 1,
           currency: "INR",
           price_amount: null,
@@ -52,6 +53,7 @@ export default function AdminGlowRitualsPage() {
           featured: false,
           cta_label: "Book this ritual",
           cta_url: "/campaigns/glow-consultation",
+          calendly_event_url: "",
           active: true,
           ordering: 0
         }}
@@ -79,6 +81,7 @@ export default function AdminGlowRitualsPage() {
           { name: "inclusions", label: "Ritual flow", type: "jsonList", span: "full", help: "One flow step per line." },
           { name: "cta_label", label: "CTA label", required: true },
           { name: "cta_url", label: "CTA URL" },
+          { name: "calendly_event_url", label: "Calendly event URL", span: "full" },
           { name: "featured", label: "Featured", type: "checkbox" },
           { name: "active", label: "Active", type: "checkbox" },
           { name: "ordering", label: "Order", type: "number" }

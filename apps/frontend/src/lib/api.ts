@@ -92,6 +92,13 @@ export async function submitCampaignResponse(slug: string, responseData: Record<
   });
 }
 
+export async function submitRitualBookingLead(slug: string, data: { full_name: string; phone: string; email: string; skin_goal: string }) {
+  return apiFetch<{ id: number; contact: number | null; contact_sync_status: string; message: string }>(`/public/services/${slug}/booking-leads/`, {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
 export function authHeaders(): Record<string, string> {
   const token = typeof window !== "undefined" ? window.localStorage.getItem("glow_admin_token") : null;
   return token ? { Authorization: `Token ${token}` } : {};

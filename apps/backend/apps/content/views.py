@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.views import APIView
 
 from apps.common.image_variants import ensure_image_variants
-from apps.campaigns.models import CampaignForm
+from apps.campaigns.models import CampaignForm, CampaignFormResponse
+from apps.contacts.services import sync_campaign_response_to_contact
 from apps.content.models import BrandSettings, FAQ, GalleryImage, HeroSlide, MediaAsset, Page, PageSection, Service, SiteNavigationItem, Testimonial
 from apps.content.serializers import (
     BrandSettingsSerializer,
@@ -20,6 +23,7 @@ from apps.content.serializers import (
     MediaAssetSerializer,
     PageSectionSerializer,
     PageSerializer,
+    RitualBookingLeadSerializer,
     ServiceSerializer,
     SiteNavigationItemSerializer,
     TestimonialSerializer,
@@ -66,6 +70,50 @@ class PublicServiceDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         return Service.objects.filter(active=True)
+
+
+class PublicServiceBookingLeadView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, slug: str):
+        service = get_object_or_404(Service.objects.select_related("booking_campaign").filter(active=True), slug=slug)
+        serializer = RitualBookingLeadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        form = service.booking_campaign or CampaignForm.objects.filter(slug="glow-consultation").first()
+        if not form:
+            return Response({"detail": "Booking form is not configured."}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        response_data = {
+            "full_name": data["full_name"],
+            "phone": data["phone"],
+            "email": data.get("email", ""),
+            "preferred_ritual": service.title,
+            "skin_goal": data.get("skin_goal", ""),
+        }
+        response = CampaignFormResponse.objects.create(
+            form=form,
+            response_data=response_data,
+            metadata={
+                "source": "ritual_booking",
+                "service_id": service.pk,
+                "service_slug": service.slug,
+                "ip": request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "")),
+                "user_agent": request.META.get("HTTP_USER_AGENT", ""),
+            },
+            field_snapshot=ritual_booking_field_snapshot(),
+        )
+        sync_campaign_response_to_contact(response)
+        return Response(
+            {
+                "id": response.pk,
+                "contact": response.contact_id,
+                "contact_sync_status": response.contact_sync_status,
+                "message": "Your details have been saved. Choose a time that works for you.",
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class PublicSeoIndexView(APIView):
@@ -117,6 +165,16 @@ class PublicSeoIndexView(APIView):
             )
 
         return Response(items)
+
+
+def ritual_booking_field_snapshot():
+    return [
+        {"id": 0, "label": "Full name", "key": "full_name", "field_type": "text", "required": True, "options": [], "validation": {}, "ordering": 0},
+        {"id": 0, "label": "Phone", "key": "phone", "field_type": "phone", "required": True, "options": [], "validation": {}, "ordering": 1},
+        {"id": 0, "label": "Email", "key": "email", "field_type": "email", "required": False, "options": [], "validation": {}, "ordering": 2},
+        {"id": 0, "label": "Preferred ritual", "key": "preferred_ritual", "field_type": "text", "required": False, "options": [], "validation": {}, "ordering": 3},
+        {"id": 0, "label": "Skin goal", "key": "skin_goal", "field_type": "textarea", "required": False, "options": [], "validation": {}, "ordering": 4},
+    ]
 
 
 class PublicHeroSlideListView(ListAPIView):

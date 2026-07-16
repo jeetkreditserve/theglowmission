@@ -283,7 +283,12 @@ class PublicCampaignResponseSerializer(serializers.Serializer):
 
     @staticmethod
     def _is_required_missing(field: CampaignFormField, value) -> bool:
-        if not field.required:
+        required = field.required
+        if field.key == "email" and field.field_type == CampaignFormField.FieldType.EMAIL:
+            required = False
+        if field.key == "phone" and field.field_type == CampaignFormField.FieldType.PHONE:
+            required = True
+        if not required:
             return False
         if field.field_type == CampaignFormField.FieldType.CHECKBOX:
             return value is not True

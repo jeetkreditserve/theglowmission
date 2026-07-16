@@ -37,7 +37,7 @@ export const seoPages: SeoContentPage[] = [
       {
         title: "What the rituals include",
         body:
-          "The ritual menu includes The Face Lift Ritual, The Glow Cleanse, The Occasion Glow Ritual, The Rest & Reset Ritual, and The Glow Mission Signature. Sessions range from 40 to 95 minutes and are designed around massage, sculpting, steam, cooling therapy, glow packs, and consultation-led care."
+          "The ritual menu includes The Face Lift Ritual, The Glow Cleanse, The Occasion Glow Ritual, The Rest & Reset Ritual, and The Glow Mission Signature. Sessions range from 50 to 90 minutes and are designed around massage, sculpting, steam, cooling therapy, glow packs, and consultation-led care."
       },
       {
         title: "Where The Glow Mission serves",
@@ -204,7 +204,7 @@ export const seoPages: SeoContentPage[] = [
       {
         title: "Best ritual match",
         body:
-          "The Face Lift Ritual is the focused 40-minute sculpting option. The Glow Mission Signature is the complete 95-minute option for lifting, sculpting, glow, and deep renewal."
+          "The Face Lift Ritual is the focused 50-minute sculpting option. The Glow Mission Signature is the complete 90-minute option for lifting, sculpting, glow, and deep renewal."
       },
       {
         title: "Techniques included",
@@ -581,7 +581,7 @@ export const seoPages: SeoContentPage[] = [
       {
         title: "Best ritual match",
         body:
-          "The Glow Mission Signature is the complete 95-minute ritual for lifting, sculpting, glow, and deep renewal."
+          "The Glow Mission Signature is the complete 90-minute ritual for lifting, sculpting, glow, and deep renewal."
       },
       {
         title: "What the Signature includes",
@@ -615,7 +615,7 @@ export const seoPages: SeoContentPage[] = [
       {
         title: "Natural facial intent",
         body:
-          "A natural facial search usually means the user wants ingredients, touch, comfort, and glow. The full ritual menu gives options from 40 to 95 minutes."
+          "A natural facial search usually means the user wants ingredients, touch, comfort, and glow. The full ritual menu gives options from 50 to 90 minutes."
       },
       {
         title: "How to choose",

@@ -25,8 +25,8 @@ RITUAL_SERVICES = [
         "title": "The Face Lift Ritual",
         "slug": "the-face-lift-ritual",
         "short_description": "A quick sculpting ritual to lift, refresh, and energise the skin.",
-        "description": "A focused 40-minute ritual for facial tension, visible fatigue, and a naturally lifted look through restorative massage, gua sha, cooling therapy, and a nourishing glow pack.",
-        "duration": "40 MINS",
+        "description": "A focused 50-minute ritual for facial tension, visible fatigue, and a naturally lifted look through restorative massage, gua sha, cooling therapy, and a nourishing glow pack.",
+        "duration": "50 MINS",
         "price_amount": 3599,
         "price_note": "Hero ingredients: Milk, Aloe Vera, Multani Mitti",
         "inclusions": [
@@ -44,7 +44,7 @@ RITUAL_SERVICES = [
         "slug": "the-glow-cleanse",
         "short_description": "A comforting reset to refresh, soften, and awaken tired skin.",
         "description": "A soft cleansing ritual for dullness and tired skin, with breathwork, relaxation touch, warm steam, exfoliation massage, facial uplift, cooling therapy, and a nourishing glow pack.",
-        "duration": "45 MINS",
+        "duration": "60 MINS",
         "price_amount": 4999,
         "price_note": "Hero ingredients: Banana, Milk, Honey",
         "inclusions": [
@@ -65,7 +65,7 @@ RITUAL_SERVICES = [
         "slug": "the-occasion-glow-ritual",
         "short_description": "A brightening ritual for special moments and naturally radiant skin.",
         "description": "A radiance-focused ritual for occasions, photographs, and important days, combining relaxation touch, under-eye cooling, steam, brightening exfoliation, calming massage, radiance pack, and gua sha sculpting.",
-        "duration": "55 MINS",
+        "duration": "70 MINS",
         "price_amount": 5999,
         "price_note": "Hero ingredients: Papaya, Orange, Aloe Vera",
         "inclusions": [
@@ -87,7 +87,7 @@ RITUAL_SERVICES = [
         "slug": "the-rest-reset-ritual",
         "short_description": "A deeper restorative ritual to calm the skin and bring back a rested glow.",
         "description": "A longer restorative ritual for tired skin and a tired nervous system, with grounding breathwork, relaxation touch, steam, skin renewal, nourishment, facial uplift, light therapy, and a restorative glow pack.",
-        "duration": "75 MINS",
+        "duration": "80 MINS",
         "price_amount": 7999,
         "price_note": "Hero ingredients: Papaya, Aloe Vera, Banana",
         "inclusions": [
@@ -109,7 +109,7 @@ RITUAL_SERVICES = [
         "slug": "the-glow-mission-signature",
         "short_description": "A complete signature ritual for lifting, sculpting, glow, and deep renewal.",
         "description": "The complete Glow Mission experience, designed for clients who want lifting, sculpting, radiance, and deep renewal through massage, gua sha, light therapy, cooling eye care, and a signature glow pack.",
-        "duration": "95 MINS",
+        "duration": "90 MINS",
         "price_amount": 8999,
         "price_note": "Hero ingredients: Saffron, Honey, Aloe Vera",
         "inclusions": [
@@ -131,6 +131,20 @@ RITUAL_SERVICES = [
 
 RITUAL_NAMES = [service["title"] for service in RITUAL_SERVICES]
 OLD_PLACEHOLDER_SERVICE_SLUGS = ["signature-glow-ritual", "face-yoga-lift", "natural-ingredient-facial"]
+RITUAL_CALENDLY_URLS = {
+    "the-glow-mission-signature": "https://calendly.com/theglowmission-info/the-glow-mission-signature-01-hour-30-minutes",
+    "the-rest-reset-ritual": "https://calendly.com/theglowmission-info/the-rest-rest-ritual-01-hour-20-minutes",
+    "the-occasion-glow-ritual": "https://calendly.com/theglowmission-info/the-occasion-glow-ritual-01-hour-10-minutes",
+    "the-glow-cleanse": "https://calendly.com/theglowmission-info/the-glow-cleanse-01-hour",
+    "the-face-lift-ritual": "https://calendly.com/theglowmission-info/the-glow-lift-ritual",
+}
+RITUAL_DURATIONS = {
+    "the-glow-mission-signature": "90 MINS",
+    "the-rest-reset-ritual": "80 MINS",
+    "the-occasion-glow-ritual": "70 MINS",
+    "the-glow-cleanse": "60 MINS",
+    "the-face-lift-ritual": "50 MINS",
+}
 
 
 class Command(BaseCommand):
@@ -282,7 +296,7 @@ class Command(BaseCommand):
                 "section_type": PageSection.SectionType.HERO,
                 "title": "Natural facial rituals for a softer, calmer glow.",
                 "subtitle": "A premium spa wellness experience shaped by facial massage, sculpting touch, and botanical care.",
-                "body": "Choose a 40 to 95 minute ritual and leave feeling rested, lifted, and beautifully looked after.",
+                "body": "Choose a 50 to 90 minute ritual and leave feeling rested, lifted, and beautifully looked after.",
                 "cta_label": "Book a consultation",
                 "cta_url": "/campaigns/glow-consultation",
                 "ordering": 0,
@@ -292,7 +306,7 @@ class Command(BaseCommand):
                 "section_type": PageSection.SectionType.SERVICES,
                 "title": "Rituals designed around touch, tension, and visible radiance",
                 "subtitle": "Sculpting massage, glow packs, botanical textures, and slow restorative care.",
-                "body": "Choose from five real glow rituals ranging from ₹3,599 to ₹8,999 and 40 to 95 minutes. Each treatment is shaped around your skin comfort, facial tension, and the way you want to feel when you leave.",
+                "body": "Choose from five real glow rituals ranging from ₹3,599 to ₹8,999 and 50 to 90 minutes. Each treatment is shaped around your skin comfort, facial tension, and the way you want to feel when you leave.",
                 "cta_label": "Explore glow rituals",
                 "cta_url": "/glow-rituals",
                 "ordering": 1,
@@ -381,7 +395,7 @@ class Command(BaseCommand):
                     "ordering": 1,
                     "eyebrow": "Treatment menu",
                     "title": "Five natural facial rituals, priced clearly and easy to book.",
-                    "body": "Rituals range from ₹3,599 to ₹8,999 and 40 to 95 minutes, from a quick sculpting lift to the complete Glow Mission Signature.",
+                    "body": "Rituals range from ₹3,599 to ₹8,999 and 50 to 90 minutes, from a quick sculpting lift to the complete Glow Mission Signature.",
                 },
                 {
                     "section_type": PageSection.SectionType.FAQS,
@@ -461,7 +475,7 @@ class Command(BaseCommand):
         slides = [
             {
                 "title": "Natural facial rituals for a softer, calmer glow.",
-                "subtitle": "Facial massage, sculpting touch, and botanical care from 40 to 95 minutes.",
+                "subtitle": "Facial massage, sculpting touch, and botanical care from 50 to 90 minutes.",
                 "body": "A luxury spa wellness experience for rested skin, softened tension, and quiet confidence.",
                 "offer_label": "Signature consultation",
                 "primary_cta_label": "Book a consultation",
@@ -518,6 +532,7 @@ class Command(BaseCommand):
         for service in RITUAL_SERVICES:
             asset_candidates = service["asset_candidates"]
             service_data = {key: value for key, value in service.items() if key != "asset_candidates"}
+            service_data["duration"] = RITUAL_DURATIONS.get(service["slug"], service_data["duration"])
             item, _ = Service.objects.update_or_create(
                 slug=service["slug"],
                 defaults={
@@ -530,6 +545,7 @@ class Command(BaseCommand):
                     "session_count": 1,
                     "cta_label": "Book this ritual",
                     "cta_url": f"/campaigns/{campaign.slug}",
+                    "calendly_event_url": RITUAL_CALENDLY_URLS.get(service["slug"], ""),
                     "booking_campaign": campaign,
                     "active": True,
                 },
@@ -540,7 +556,7 @@ class Command(BaseCommand):
     def seed_supporting_content(self):
         faqs = [
             ("What is The Glow Mission?", "The Glow Mission is a boutique facial wellness studio focused on natural facial massage, sculpting touch, botanical textures, glow packs, and slow restorative care."),
-            ("How long is a session?", "Glow rituals range from 40 to 95 minutes, with enough time for calm preparation, skin work, massage, and a slow finish."),
+            ("How long is a session?", "Glow rituals range from 50 to 90 minutes, with enough time for calm preparation, skin work, massage, and a slow finish."),
             ("Is this a medical facial?", "No. The Glow Mission is a wellness and beauty ritual experience, not a medical dermatology service or clinical skin procedure."),
             ("What should I book for my first visit?", "If you want a quick sculpting reset, choose The Face Lift Ritual. If you want the complete experience, choose The Glow Mission Signature."),
             ("Can I book a launch offer or free session?", "Yes. When a launch offer is available, you can request it through the featured consultation form and we will confirm availability."),
@@ -610,8 +626,8 @@ class Command(BaseCommand):
         form.save()
         fields = [
             ("Full name", "full_name", CampaignFormField.FieldType.TEXT, True, 0, "Your name"),
-            ("Email", "email", CampaignFormField.FieldType.EMAIL, True, 1, "you@example.com"),
-            ("Phone", "phone", CampaignFormField.FieldType.PHONE, False, 2, "10-digit phone number"),
+            ("Email", "email", CampaignFormField.FieldType.EMAIL, False, 1, "you@example.com"),
+            ("Phone", "phone", CampaignFormField.FieldType.PHONE, True, 2, "10-digit phone number"),
             ("Preferred ritual", "preferred_ritual", CampaignFormField.FieldType.SELECT, True, 3, ""),
             ("Preferred day", "preferred_day", CampaignFormField.FieldType.TEXT, False, 4, "Weekday morning, weekend evening..."),
             ("What would you like help with?", "skin_goal", CampaignFormField.FieldType.TEXTAREA, False, 5, "Dullness, tension, puffiness, unevenness, dryness..."),
@@ -692,7 +708,7 @@ class Command(BaseCommand):
                 "label": "Email",
                 "key": "email",
                 "field_type": CampaignFormField.FieldType.EMAIL,
-                "required": True,
+                "required": False,
                 "ordering": 2,
                 "placeholder": "you@example.com",
                 "validation": {},

@@ -5,6 +5,7 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.common.form_validation import validate_digit_phone
@@ -139,6 +140,18 @@ def _sync_campaign_response_to_contact(response) -> ContactSyncResult:
         response.save(update_fields=["contact", "contact_sync_status", "contact_sync_error", "updated_at"])
         return ContactSyncResult(contact=None, status="skipped")
 
+    normalized_email = normalize_email(values.get("email"))
+    normalized_phone = normalize_phone(values.get("phone"))
+    if not normalized_phone:
+        existing_contact = Contact.objects.filter(is_merged=False, normalized_email=normalized_email).first() if normalized_email else None
+        if not existing_contact:
+            message = "Phone is required to create a new contact."
+            response.contact = None
+            response.contact_sync_status = "skipped"
+            response.contact_sync_error = message
+            response.save(update_fields=["contact", "contact_sync_status", "contact_sync_error", "updated_at"])
+            return ContactSyncResult(contact=None, status="skipped", error=message)
+
     contact, created, conflict = find_or_create_contact(values, response)
     skipped_fields: set[str] = set()
     if conflict:
@@ -199,6 +212,8 @@ def find_or_create_contact(values: dict[str, Any], response) -> tuple[Contact, b
         return email_contact, False, ""
     if phone_contact:
         return phone_contact, False, ""
+    if not normalized_phone:
+        raise ValidationError("Phone is required to create a new contact.")
 
     contact = Contact(
         status=default_contact_status(),

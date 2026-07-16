@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ArrowRight, Check, ChevronDown, Instagram, Mail, MapPin, Phone, Quote } from "lucide-react";
 import type { BrandSettings, FAQ, GalleryImage, PageSection, Service, Testimonial } from "@/types/cms";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
+import { RitualBookingButton } from "@/components/public/RitualBookingButton";
 
 export function SectionRenderer({
   sections,
@@ -149,15 +150,21 @@ function ServiceBand({ section, services }: { section: PageSection; services: Se
                     ))}
                   </ul>
                 )}
-                <div className="mt-7 flex items-end justify-between gap-4 border-t border-champagne/25 pt-5">
+                <div className="mt-7 grid gap-5 border-t border-champagne/25 pt-5">
                   <div>
                     {service.sale_price_amount && <p className="text-sm text-espresso/45 line-through">{formatPrice(service.currency, service.price_amount)}</p>}
                     {formatPrice(service.currency, service.sale_price_amount || service.price_amount) && <p className="font-display text-3xl">{formatPrice(service.currency, service.sale_price_amount || service.price_amount)}</p>}
                     {service.price_note && <p className="mt-1 text-xs uppercase tracking-[0.14em] text-espresso/52">{service.price_note}</p>}
                   </div>
-                  <Link href={`/glow-rituals/${service.slug}`} aria-label={`View ${service.title}`} className="flex h-11 w-11 shrink-0 items-center justify-center bg-champagne text-espresso transition hover:bg-espresso hover:text-ivory">
+                  <div className="flex items-center justify-between gap-4">
+                    <RitualBookingButton service={service} className="brand-button inline-flex items-center gap-2 bg-champagne px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-espresso transition hover:bg-espresso hover:text-ivory">
+                      Book
+                      <ArrowRight size={14} />
+                    </RitualBookingButton>
+                    <Link href={`/glow-rituals/${service.slug}`} aria-label={`View ${service.title}`} className="flex h-11 w-11 shrink-0 items-center justify-center bg-espresso text-ivory transition hover:bg-champagne hover:text-espresso">
                       <ArrowRight size={17} />
-                  </Link>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </article>

@@ -130,6 +130,7 @@ export type Service = {
   featured: boolean;
   cta_label: string;
   cta_url: string;
+  calendly_event_url: string;
   booking_campaign: number | null;
   booking_campaign_slug: string;
   active: boolean;

@@ -21,7 +21,7 @@ export async function GET() {
     `- Contact: ${absoluteUrl("/contact")}`,
     "",
     "## Rituals",
-    ...(serviceLines.length ? serviceLines : ["- Ritual menu: natural facial sessions from 40 to 95 minutes"]),
+    ...(serviceLines.length ? serviceLines : ["- Ritual menu: natural facial sessions from 50 to 90 minutes"]),
     "",
     `Full AI-readable guide: ${absoluteUrl("/llms-full.txt")}`,
     ""

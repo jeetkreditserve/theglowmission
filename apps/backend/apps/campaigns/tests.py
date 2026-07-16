@@ -50,9 +50,11 @@ class CampaignResponseValidationTests(TestCase):
 
         errors = self.field_errors_for({"email": "not-an-email"})
         valid_serializer = self.validate_payload({"email": "client@example.com"})
+        missing_serializer = self.validate_payload({"email": ""})
 
         self.assertIn("email", errors)
         self.assertTrue(valid_serializer.is_valid(), valid_serializer.errors)
+        self.assertTrue(missing_serializer.is_valid(), missing_serializer.errors)
 
     def test_phone_field_rejects_non_digits_and_requires_ten_digits(self):
         self.create_field("phone", CampaignFormField.FieldType.PHONE, required=True)
@@ -66,12 +68,12 @@ class CampaignResponseValidationTests(TestCase):
         self.assertTrue(valid_serializer.is_valid(), valid_serializer.errors)
         self.assertEqual(valid_serializer.validated_data["response_data"]["phone"], "9876543210")
 
-    def test_optional_empty_phone_is_allowed(self):
+    def test_phone_key_is_required_even_if_field_is_configured_optional(self):
         self.create_field("phone", CampaignFormField.FieldType.PHONE, required=False)
 
-        serializer = self.validate_payload({"phone": ""})
+        errors = self.field_errors_for({"phone": ""})
 
-        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertIn("phone", errors)
 
     def test_number_min_max_is_enforced(self):
         self.create_field("age", CampaignFormField.FieldType.NUMBER, required=True, validation={"min": 18, "max": 80})

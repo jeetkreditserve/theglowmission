@@ -147,8 +147,8 @@ class ContactSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         values = self.current_values(attrs)
-        if not self.instance and not (values.get("email") or values.get("phone")):
-            raise serializers.ValidationError("Manual contacts require an email or phone.")
+        if not self.instance and not values.get("phone"):
+            raise serializers.ValidationError({"phone": "New contacts require a phone number."})
         if not any(values.get(field) for field in ["full_name", "email", "phone", "address"]):
             raise serializers.ValidationError("A contact needs at least one identity field.")
 
