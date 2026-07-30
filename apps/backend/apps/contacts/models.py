@@ -167,3 +167,49 @@ class ContactNote(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Note for contact {self.contact_id}"
+
+
+class ContactHistoryEntry(TimeStampedModel):
+    contact = models.ForeignKey(Contact, related_name="history_entries", on_delete=models.CASCADE)
+    appointment = models.ForeignKey(
+        "appointments.Appointment",
+        related_name="contact_history_entries",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    event_at = models.DateTimeField()
+    service_label = models.CharField(max_length=180, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    notes = models.TextField(blank=True)
+    before_photo = models.ForeignKey(
+        "appointments.AppointmentPhoto",
+        related_name="before_contact_history_entries",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    after_photo = models.ForeignKey(
+        "appointments.AppointmentPhoto",
+        related_name="after_contact_history_entries",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="contact_history_entries",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        ordering = ["-event_at", "-id"]
+        indexes = [
+            models.Index(fields=["contact", "event_at"]),
+            models.Index(fields=["appointment", "event_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.contact_id} history at {self.event_at}"

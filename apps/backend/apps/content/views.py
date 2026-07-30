@@ -285,8 +285,8 @@ def app_feature_flags_payload() -> dict:
         "customer_notifications": getattr(settings, "CUSTOMER_NOTIFICATIONS_ENABLED", True),
         "web_push": bool(getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")),
         "native_push": getattr(settings, "CUSTOMER_NOTIFICATIONS_ENABLED", True),
-        "calendly_booking": True,
-        "first_party_scheduling": False,
+        "calendly_booking": getattr(settings, "CALENDLY_BOOKING_FALLBACK_ENABLED", True),
+        "first_party_scheduling": getattr(settings, "FIRST_PARTY_SCHEDULING_ENABLED", True),
     }
 
 

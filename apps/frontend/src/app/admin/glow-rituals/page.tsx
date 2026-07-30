@@ -24,6 +24,10 @@ type RitualItem = {
   cta_label: string;
   cta_url: string;
   calendly_event_url: string;
+  duration_minutes: number | null;
+  booking_buffer_minutes: number | null;
+  accepts_online_booking: boolean;
+  calendly_fallback_enabled: boolean;
   active: boolean;
   ordering: number;
 };
@@ -54,6 +58,10 @@ export default function AdminGlowRitualsPage() {
           cta_label: "Book this ritual",
           cta_url: "/campaigns/glow-consultation",
           calendly_event_url: "",
+          duration_minutes: 60,
+          booking_buffer_minutes: 0,
+          accepts_online_booking: true,
+          calendly_fallback_enabled: true,
           active: true,
           ordering: 0
         }}
@@ -81,6 +89,10 @@ export default function AdminGlowRitualsPage() {
           { name: "inclusions", label: "Ritual flow", type: "jsonList", span: "full", help: "One flow step per line." },
           { name: "cta_label", label: "CTA label", required: true },
           { name: "cta_url", label: "CTA URL" },
+          { name: "duration_minutes", label: "Booking duration minutes", type: "number" },
+          { name: "booking_buffer_minutes", label: "Buffer minutes", type: "number" },
+          { name: "accepts_online_booking", label: "Accept first-party bookings", type: "checkbox" },
+          { name: "calendly_fallback_enabled", label: "Allow Calendly fallback", type: "checkbox" },
           { name: "calendly_event_url", label: "Calendly event URL", span: "full" },
           { name: "featured", label: "Featured", type: "checkbox" },
           { name: "active", label: "Active", type: "checkbox" },

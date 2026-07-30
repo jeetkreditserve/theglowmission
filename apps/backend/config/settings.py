@@ -19,6 +19,15 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
 
 
+def env_int_list(name: str, default: str) -> list[int]:
+    values: list[int] = []
+    for item in env(name, default).split(","):
+        item = item.strip()
+        if item:
+            values.append(int(item))
+    return values
+
+
 SECRET_KEY = env("DJANGO_SECRET_KEY", "insecure-dev-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",") if host.strip()]
@@ -39,6 +48,8 @@ INSTALLED_APPS = [
     "apps.contacts",
     "apps.content",
     "apps.campaigns",
+    "apps.appointments",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -180,3 +191,12 @@ WEB_PUSH_PUBLIC_KEY = env("WEB_PUSH_PUBLIC_KEY", "")
 WEB_PUSH_PRIVATE_KEY = env("WEB_PUSH_PRIVATE_KEY", "")
 WEB_PUSH_SUBJECT = env("WEB_PUSH_SUBJECT", "mailto:info@theglowmission.com")
 APP_CONFIG_CACHE_SECONDS = int(env("APP_CONFIG_CACHE_SECONDS", "300"))
+FIRST_PARTY_SCHEDULING_ENABLED = env_bool("FIRST_PARTY_SCHEDULING_ENABLED", True)
+CALENDLY_BOOKING_FALLBACK_ENABLED = env_bool("CALENDLY_BOOKING_FALLBACK_ENABLED", True)
+APPOINTMENT_SLOT_HORIZON_DAYS = int(env("APPOINTMENT_SLOT_HORIZON_DAYS", "60"))
+APPOINTMENT_MIN_LEAD_MINUTES = int(env("APPOINTMENT_MIN_LEAD_MINUTES", "240"))
+APPOINTMENT_DOWNTIME_MINUTES = int(env("APPOINTMENT_DOWNTIME_MINUTES", "15"))
+APPOINTMENT_CUSTOMER_CHANGE_CUTOFF_MINUTES = int(env("APPOINTMENT_CUSTOMER_CHANGE_CUTOFF_MINUTES", "720"))
+APPOINTMENT_REMINDER_MINUTES = env_int_list("APPOINTMENT_REMINDER_MINUTES", "1440,120")
+APPOINTMENT_SCHEDULER_POLL_SECONDS = int(env("APPOINTMENT_SCHEDULER_POLL_SECONDS", "300"))
+GLOW_GST_RATE_PERCENT = env("GLOW_GST_RATE_PERCENT", "18")

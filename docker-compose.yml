@@ -27,6 +27,22 @@ services:
     restart: unless-stopped
     command: ["/app/scripts/backend-entrypoint.sh"]
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "/app/scripts/wait-for-db.sh postgres:5432 true && python manage.py migrate --noinput && while true; do python manage.py send_appointment_reminders; sleep \"$${APPOINTMENT_SCHEDULER_POLL_SECONDS:-300}\"; done",
+      ]
+
   frontend:
     build:
       context: .

@@ -4,19 +4,20 @@ import { Footer } from "@/components/public/Footer";
 import { JsonLd } from "@/components/public/JsonLd";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { SectionRenderer } from "@/components/public/SectionRenderer";
-import { fallbackBrand, getBrandSettings, getFAQs, getGallery, getNavigationItems, getPage, getServices, getTestimonials } from "@/lib/api";
+import { fallbackBrand, getBrandSettings, getFAQs, getGallery, getNavigationItems, getPage, getPublicAppConfig, getServices, getTestimonials } from "@/lib/api";
 import { canonicalPathForCmsSlug } from "@/lib/site";
 import { breadcrumbJsonLd, faqPageJsonLd, localBusinessJsonLd, organizationJsonLd, webPageJsonLd, websiteJsonLd } from "@/lib/structured-data";
 
 export async function PublicCmsPage({ slug }: { slug: string }) {
-  const [brand, navigationItems, page, services, gallery, faqs, testimonials] = await Promise.all([
+  const [brand, navigationItems, page, services, gallery, faqs, testimonials, appConfig] = await Promise.all([
     getBrandSettings().catch(() => fallbackBrand()),
     getNavigationItems().catch(() => []),
     getPage(slug).catch(() => null),
     getServices().catch(() => []),
     getGallery().catch(() => []),
     getFAQs().catch(() => []),
-    getTestimonials().catch(() => [])
+    getTestimonials().catch(() => []),
+    getPublicAppConfig().catch(() => null)
   ]);
 
   if (!page) {
@@ -53,6 +54,7 @@ export async function PublicCmsPage({ slug }: { slug: string }) {
           faqs={faqs}
           testimonials={testimonials}
           brand={brand}
+          bookingFlags={appConfig?.feature_flags}
           includeHeroSections
         />
       </main>

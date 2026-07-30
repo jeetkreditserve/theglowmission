@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, FileText, Merge, RefreshCcw, Save } from "lucide-react";
+import { ArrowLeft, Camera, FileText, History, Merge, Plus, RefreshCcw, Save } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { useAdminToast } from "@/components/admin/AdminToasts";
-import { ApiError, adminFetch, flattenApiErrors, formatApiError } from "@/lib/api";
+import { ApiError, adminFetch, createContactHistory, getAppointmentPhotos, getContactHistory, flattenApiErrors, formatApiError } from "@/lib/api";
 import { phoneInputValue } from "@/lib/formValidation";
-import type { Contact, ContactStatus } from "@/types/cms";
+import type { Appointment, AppointmentPhoto, Contact, ContactHistoryEntry, ContactStatus } from "@/types/cms";
 
 type ResponseItem = {
   id: number;
@@ -33,6 +33,9 @@ export default function AdminContactDetailPage() {
   const [draft, setDraft] = useState<DraftContact | null>(null);
   const [statuses, setStatuses] = useState<ContactStatus[]>([]);
   const [responses, setResponses] = useState<ResponseItem[]>([]);
+  const [history, setHistory] = useState<ContactHistoryEntry[]>([]);
+  const [appointmentPhotos, setAppointmentPhotos] = useState<Record<number, AppointmentPhoto[]>>({});
+  const [historyDraft, setHistoryDraft] = useState({ service_label: "", amount: "", notes: "", event_at: toLocalInput(new Date().toISOString()) });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [noteBody, setNoteBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,15 +47,18 @@ export default function AdminContactDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [contactData, statusData, responseData] = await Promise.all([
+      const [contactData, statusData, responseData, historyData] = await Promise.all([
         adminFetch<Contact>(`/admin/contacts/${contactId}/`),
         adminFetch<ContactStatus[]>("/admin/contact-statuses/"),
-        adminFetch<ResponseItem[]>(`/admin/campaign-responses/?contact=${contactId}`)
+        adminFetch<ResponseItem[]>(`/admin/campaign-responses/?contact=${contactId}`),
+        getContactHistory(contactId)
       ]);
       setContact(contactData);
       setDraft(toDraft(contactData));
       setStatuses(statusData);
       setResponses(responseData);
+      setHistory(historyData);
+      setAppointmentPhotos(await loadAppointmentPhotos(contactData.appointments || []));
       setFieldErrors({});
     } catch (err: unknown) {
       const message = err instanceof Error && err.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Unable to load contact.";
@@ -115,6 +121,23 @@ export default function AdminContactDetailPage() {
     }
   }
 
+  async function addHistoryEntry() {
+    if (!historyDraft.service_label.trim() && !historyDraft.notes.trim() && !historyDraft.amount.trim()) return;
+    try {
+      await createContactHistory(contactId, {
+        service_label: historyDraft.service_label.trim() || "Manual entry",
+        amount: historyDraft.amount.trim() || null,
+        notes: historyDraft.notes.trim(),
+        event_at: localInputToIso(historyDraft.event_at)
+      });
+      setHistoryDraft({ service_label: "", amount: "", notes: "", event_at: toLocalInput(new Date().toISOString()) });
+      toast.success("History entry added.");
+      await load();
+    } catch (err: unknown) {
+      toast.error(err instanceof ApiError ? formatApiError(err.data, "Unable to add history entry.") : err instanceof Error ? err.message : "Unable to add history entry.");
+    }
+  }
+
   async function mergeDuplicate(sourceId: number) {
     const confirmed = window.confirm(`Merge contact #${sourceId} into this contact?`);
     if (!confirmed) return;
@@ -156,6 +179,13 @@ export default function AdminContactDetailPage() {
         {!loading && !error && contact && draft && (
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
             <div className="grid gap-6">
+              <section className="grid gap-4 md:grid-cols-4">
+                <ContactStat label="Appointments" value={contact.appointment_count ?? contact.appointments?.length ?? 0} />
+                <ContactStat label="Completed" value={contact.completed_appointment_count ?? contact.appointments?.filter((item) => item.status === "completed").length ?? 0} />
+                <ContactStat label="Submissions" value={contact.source_response_count} />
+                <ContactStat label="Photos" value={contact.photo_count ?? Object.values(appointmentPhotos).flat().length} />
+              </section>
+
               <section className="admin-panel">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-champagne/20 pb-5">
                   <h3 className="font-display text-2xl text-espresso">Contact details</h3>
@@ -203,6 +233,25 @@ export default function AdminContactDetailPage() {
                     <input type="checkbox" checked={draft.marketing_consent} onChange={(event) => setDraft({ ...draft, marketing_consent: event.target.checked })} className="h-5 w-5 accent-champagne" />
                     <span className="text-sm font-semibold text-espresso/75">Marketing consent</span>
                   </label>
+                </div>
+              </section>
+
+              <section className="admin-panel">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-champagne/20 pb-5">
+                  <PanelTitle title="Customer timeline" />
+                  <History size={18} className="text-espresso/40" />
+                </div>
+                <div className="mt-5 grid gap-3">
+                  {!combinedTimeline(history, contact.appointments || []).length && <p className="text-sm text-espresso/55">No appointment or history activity yet.</p>}
+                  {combinedTimeline(history, contact.appointments || []).map((item) => (
+                    <div key={item.key} className="border border-champagne/20 bg-white/50 p-4 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="font-semibold text-espresso">{item.title}</p>
+                        <span className="text-xs text-espresso/50">{formatDate(item.occurred_at)}</span>
+                      </div>
+                      {item.body && <p className="mt-2 whitespace-pre-wrap text-espresso/65">{item.body}</p>}
+                    </div>
+                  ))}
                 </div>
               </section>
 
@@ -271,6 +320,60 @@ export default function AdminContactDetailPage() {
             </div>
 
             <aside className="grid h-fit gap-6">
+              <section className="admin-panel">
+                <PanelTitle title="Manual history" />
+                <div className="mt-4 grid gap-4">
+                  <TextField label="Ritual or event" value={historyDraft.service_label} onChange={(value) => setHistoryDraft({ ...historyDraft, service_label: value })} />
+                  <label>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/58">Amount</span>
+                    <input value={historyDraft.amount} onChange={(event) => setHistoryDraft({ ...historyDraft, amount: event.target.value })} inputMode="decimal" className="admin-input mt-2" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/58">Event at</span>
+                    <input value={historyDraft.event_at} onChange={(event) => setHistoryDraft({ ...historyDraft, event_at: event.target.value })} type="datetime-local" className="admin-input mt-2" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-espresso/58">Notes</span>
+                    <textarea value={historyDraft.notes} onChange={(event) => setHistoryDraft({ ...historyDraft, notes: event.target.value })} className="admin-input mt-2 min-h-28" />
+                  </label>
+                  <button type="button" onClick={addHistoryEntry} className="admin-button">
+                    <Plus size={16} />
+                    Add history
+                  </button>
+                </div>
+              </section>
+
+              <section className="admin-panel">
+                <PanelTitle title="Appointment photos" />
+                <div className="mt-4 grid gap-4">
+                  {!Object.values(appointmentPhotos).flat().length && <p className="text-sm text-espresso/55">No before or after photos yet.</p>}
+                  {(contact.appointments || []).map((appointment) => (
+                    <div key={appointment.id} className="border border-champagne/20 bg-white/50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-espresso">{formatDate(appointment.starts_at)}</p>
+                        <Link href="/admin/appointments" className="admin-icon-link px-2 py-1.5">
+                          <Camera size={14} />
+                          Appointment
+                        </Link>
+                      </div>
+                      <div className="mt-3 grid gap-3">
+                        {!(appointmentPhotos[appointment.id] || []).length && <p className="text-sm text-espresso/55">No photos attached.</p>}
+                        {(appointmentPhotos[appointment.id] || []).map((photo) => (
+                          <div key={photo.id} className="grid gap-3 border border-champagne/20 bg-ivory/70 p-3">
+                            {photo.image_url && <img src={photo.image_url} alt={`${photo.photo_type || "Appointment"} photo`} className="aspect-[4/3] w-full object-cover" />}
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-espresso/55">{photo.photo_type || "photo"}</span>
+                              <span className="text-xs text-espresso/45">#{photo.id}</span>
+                            </div>
+                            {photo.notes && <p className="text-sm text-espresso/65">{photo.notes}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               <section className="admin-panel">
                 <PanelTitle title="Notes" />
                 <textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} className="admin-input mt-4 min-h-28" placeholder="Add a private CMS note" />
@@ -356,8 +459,57 @@ function PanelTitle({ title }: { title: string }) {
   return <h3 className="font-display text-2xl text-espresso">{title}</h3>;
 }
 
+function ContactStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="border border-champagne/25 bg-ivory/90 p-5 shadow-[0_18px_60px_rgba(37,29,24,0.06)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">{label}</p>
+      <p className="mt-3 font-display text-4xl leading-none text-espresso">{value.toLocaleString("en-IN")}</p>
+    </div>
+  );
+}
+
 function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString() : "-";
+}
+
+function localInputToIso(value: string) {
+  return value ? new Date(value).toISOString() : new Date().toISOString();
+}
+
+function toLocalInput(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+async function loadAppointmentPhotos(appointments: Appointment[]) {
+  const pairs = await Promise.all(
+    appointments.map(async (appointment) => {
+      try {
+        return [appointment.id, await getAppointmentPhotos(appointment.id)] as const;
+      } catch {
+        return [appointment.id, appointment.photos || []] as const;
+      }
+    })
+  );
+  return Object.fromEntries(pairs);
+}
+
+function combinedTimeline(history: ContactHistoryEntry[], appointments: Appointment[]) {
+  const historyItems = history.map((item) => ({
+    key: `history-${item.id}`,
+    title: item.service_label || "Manual history",
+    body: [item.amount ? `Amount: ${item.amount}` : "", item.notes].filter(Boolean).join("\n"),
+    occurred_at: item.event_at
+  }));
+  const appointmentItems = appointments.map((item) => ({
+    key: `appointment-${item.id}`,
+    title: `${humanize(item.status)} appointment${item.service_title ? ` · ${item.service_title}` : ""}`,
+    body: item.skin_goal || item.customer_notes,
+    occurred_at: item.starts_at
+  }));
+  return [...historyItems, ...appointmentItems].sort((left, right) => new Date(right.occurred_at).getTime() - new Date(left.occurred_at).getTime());
 }
 
 function sourcePreview(data: Record<string, unknown>) {

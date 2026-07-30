@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.contacts.models import Contact, ContactAuditEvent, ContactNote, ContactStatus
+from apps.contacts.models import Contact, ContactAuditEvent, ContactHistoryEntry, ContactNote, ContactStatus
 
 
 @admin.register(ContactStatus)
@@ -26,10 +26,25 @@ class ContactAuditEventInline(admin.TabularInline):
         return False
 
 
+class ContactHistoryEntryInline(admin.TabularInline):
+    model = ContactHistoryEntry
+    extra = 0
+    readonly_fields = ["created_at", "updated_at"]
+    raw_id_fields = ["appointment", "before_photo", "after_photo", "created_by"]
+
+
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
     list_display = ["display_name", "email", "phone", "status", "marketing_consent", "last_activity_at", "is_merged"]
     list_filter = ["status", "marketing_consent", "is_merged"]
     search_fields = ["full_name", "email", "phone", "address"]
     readonly_fields = ["normalized_email", "normalized_phone", "source_response_count", "first_activity_at", "last_activity_at", "merged_into", "merged_at"]
-    inlines = [ContactNoteInline, ContactAuditEventInline]
+    inlines = [ContactNoteInline, ContactHistoryEntryInline, ContactAuditEventInline]
+
+
+@admin.register(ContactHistoryEntry)
+class ContactHistoryEntryAdmin(admin.ModelAdmin):
+    list_display = ["contact", "event_at", "service_label", "amount", "appointment", "created_by"]
+    list_filter = ["event_at"]
+    search_fields = ["contact__full_name", "contact__email", "contact__phone", "service_label", "notes"]
+    raw_id_fields = ["contact", "appointment", "before_photo", "after_photo", "created_by"]

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, Check, ChevronDown, Instagram, Mail, MapPin, Phone, Quote } from "lucide-react";
-import type { BrandSettings, FAQ, GalleryImage, PageSection, Service, Testimonial } from "@/types/cms";
+import type { BrandSettings, FAQ, GalleryImage, PageSection, PublicAppFeatureFlags, Service, Testimonial } from "@/types/cms";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 import { RitualBookingButton } from "@/components/public/RitualBookingButton";
 
@@ -12,6 +12,7 @@ export function SectionRenderer({
   faqs,
   testimonials,
   brand,
+  bookingFlags,
   includeHeroSections = false
 }: {
   sections: PageSection[];
@@ -20,6 +21,7 @@ export function SectionRenderer({
   faqs: FAQ[];
   testimonials: Testimonial[];
   brand?: BrandSettings;
+  bookingFlags?: PublicAppFeatureFlags;
   includeHeroSections?: boolean;
 }) {
   const visible = sections.filter((section) => includeHeroSections || section.section_type !== "hero");
@@ -28,7 +30,7 @@ export function SectionRenderer({
     <>
       {visible.map((section, index) => {
         if (section.section_type === "hero") return <HeroSection key={section.id} section={section} />;
-        if (section.section_type === "services") return <ServiceBand key={section.id} section={section} services={services} />;
+        if (section.section_type === "services") return <ServiceBand key={section.id} section={section} services={services} bookingFlags={bookingFlags} />;
         if (section.section_type === "gallery") return <GalleryBand key={section.id} section={section} gallery={gallery} />;
         if (section.section_type === "testimonials") return <TestimonialBand key={section.id} section={section} testimonials={testimonials} />;
         if (section.section_type === "faqs") return <FAQBand key={section.id} section={section} faqs={faqs} />;
@@ -100,7 +102,7 @@ function StoryBand({ section, flip }: { section: PageSection; flip?: boolean }) 
   );
 }
 
-function ServiceBand({ section, services }: { section: PageSection; services: Service[] }) {
+function ServiceBand({ section, services, bookingFlags }: { section: PageSection; services: Service[]; bookingFlags?: PublicAppFeatureFlags }) {
   return (
     <section className="bg-[#211915] py-24 text-ivory md:py-32">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
@@ -157,7 +159,7 @@ function ServiceBand({ section, services }: { section: PageSection; services: Se
                     {service.price_note && <p className="mt-1 text-xs uppercase tracking-[0.14em] text-espresso/52">{service.price_note}</p>}
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <RitualBookingButton service={service} className="brand-button inline-flex items-center gap-2 bg-champagne px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-espresso transition hover:bg-espresso hover:text-ivory">
+                    <RitualBookingButton service={service} bookingFlags={bookingFlags} className="brand-button inline-flex items-center gap-2 bg-champagne px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-espresso transition hover:bg-espresso hover:text-ivory">
                       Book
                       <ArrowRight size={14} />
                     </RitualBookingButton>

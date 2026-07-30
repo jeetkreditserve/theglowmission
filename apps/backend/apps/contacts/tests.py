@@ -6,15 +6,18 @@ from io import BytesIO
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from openpyxl import load_workbook
 from rest_framework.test import APIClient
 
+from apps.appointments.models import Appointment
 from apps.campaigns.models import CampaignForm, CampaignFormField, CampaignFormResponse
 from apps.campaigns.serializers import PublicCampaignResponseSerializer
 from apps.contacts.exports import build_contacts_workbook
-from apps.contacts.models import Contact, ContactAuditEvent, ContactStatus
+from apps.contacts.models import Contact, ContactAuditEvent, ContactHistoryEntry, ContactStatus
 from apps.contacts.services import ensure_default_contact_statuses
 from apps.contacts.views import merge_contact_values
+from apps.content.models import Service
 
 
 class ContactIngestionTests(TestCase):
@@ -155,6 +158,41 @@ class ContactAdminApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["full_name"], "Updated Name")
+
+    def test_contact_history_api_creates_and_filters_entries(self):
+        contact = Contact.objects.create(full_name="Asha Rao", phone="9876543210", normalized_phone="9876543210", status=self.status)
+        service = Service.objects.create(title="The Glow Cleanse", slug="the-glow-cleanse", short_description="Reset", duration_minutes=60)
+        starts_at = timezone.now() + timedelta(days=1)
+        appointment = Appointment.objects.create(
+            service=service,
+            contact=contact,
+            full_name=contact.full_name,
+            phone=contact.phone,
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(minutes=60),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+
+        create_response = self.client.post(
+            "/api/v1/admin/contact-history/",
+            {
+                "contact": contact.pk,
+                "appointment": appointment.pk,
+                "event_at": starts_at.isoformat(),
+                "amount": "2500.00",
+                "notes": "First ritual complete.",
+            },
+            format="json",
+        )
+        list_response = self.client.get("/api/v1/admin/contact-history/", {"contact": contact.pk})
+
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(create_response.data["service_label"], "The Glow Cleanse")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(ContactHistoryEntry.objects.get().created_by_id, self.user.pk)
 
 
 class ContactMergeTests(TestCase):

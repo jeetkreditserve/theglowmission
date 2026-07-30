@@ -145,6 +145,13 @@ RITUAL_DURATIONS = {
     "the-glow-cleanse": "60 MINS",
     "the-face-lift-ritual": "50 MINS",
 }
+RITUAL_DURATION_MINUTES = {
+    "the-glow-mission-signature": 90,
+    "the-rest-reset-ritual": 80,
+    "the-occasion-glow-ritual": 70,
+    "the-glow-cleanse": 60,
+    "the-face-lift-ritual": 50,
+}
 
 
 class Command(BaseCommand):
@@ -543,6 +550,10 @@ class Command(BaseCommand):
                     "discount_label": "",
                     "featured": False,
                     "session_count": 1,
+                    "duration_minutes": RITUAL_DURATION_MINUTES.get(service["slug"], 60),
+                    "booking_buffer_minutes": 0,
+                    "accepts_online_booking": True,
+                    "calendly_fallback_enabled": True,
                     "cta_label": "Book this ritual",
                     "cta_url": f"/campaigns/{campaign.slug}",
                     "calendly_event_url": RITUAL_CALENDLY_URLS.get(service["slug"], ""),

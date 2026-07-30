@@ -12,8 +12,14 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from apps.contacts.exports import build_contacts_workbook
-from apps.contacts.models import Contact, ContactAuditEvent, ContactNote, ContactStatus
-from apps.contacts.serializers import ContactNoteSerializer, ContactSerializer, ContactStatusSerializer, ContactSummarySerializer
+from apps.contacts.models import Contact, ContactAuditEvent, ContactHistoryEntry, ContactNote, ContactStatus
+from apps.contacts.serializers import (
+    ContactHistoryEntrySerializer,
+    ContactNoteSerializer,
+    ContactSerializer,
+    ContactStatusSerializer,
+    ContactSummarySerializer,
+)
 from apps.contacts.services import CONTACT_PROFILE_FIELDS, normalize_email, normalize_phone, refresh_contact_response_count
 
 
@@ -79,7 +85,7 @@ class ContactViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
             Contact.objects.select_related("status", "merged_into")
-            .prefetch_related("notes", "audit_events", "campaign_responses__form")
+            .prefetch_related("notes", "audit_events", "history_entries", "appointments__service", "appointments__photos", "campaign_responses__form")
             .filter(is_merged=False)
         )
         search = self.request.query_params.get("search") or self.request.query_params.get("q")
@@ -210,6 +216,43 @@ class ContactNoteViewSet(viewsets.ModelViewSet):
             source_id=str(note.pk),
             actor=self.request.user,
             message="Admin note added.",
+        )
+
+
+class ContactHistoryEntryViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUser]
+    serializer_class = ContactHistoryEntrySerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["event_at", "created_at", "updated_at"]
+
+    def get_queryset(self):
+        queryset = ContactHistoryEntry.objects.select_related(
+            "contact",
+            "appointment",
+            "appointment__service",
+            "before_photo",
+            "after_photo",
+            "created_by",
+        ).all()
+        contact_id = self.request.query_params.get("contact")
+        if contact_id:
+            queryset = queryset.filter(contact_id=contact_id)
+        appointment_id = self.request.query_params.get("appointment")
+        if appointment_id:
+            queryset = queryset.filter(appointment_id=appointment_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        entry = serializer.save(created_by=self.request.user)
+        ContactAuditEvent.objects.create(
+            contact=entry.contact,
+            event_type=ContactAuditEvent.EventType.UPDATED,
+            field_name="history",
+            new_value={"history_entry": entry.pk, "service_label": entry.service_label},
+            source_type="manual_history",
+            source_id=str(entry.pk),
+            actor=self.request.user,
+            message="Contact history entry added.",
         )
 
 

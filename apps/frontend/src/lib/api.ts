@@ -1,4 +1,23 @@
-import type { BrandSettings, CampaignForm, FAQ, GalleryImage, HeroSlide, Page, SeoIndexItem, Service, SiteNavigationItem, Testimonial } from "@/types/cms";
+import type {
+  AvailableSlotsResponse,
+  BrandSettings,
+  CampaignForm,
+  FAQ,
+  GalleryImage,
+  HeroSlide,
+  AppointmentPhoto,
+  ContactHistoryEntry,
+  FounderDashboardResponse,
+  NotificationCampaign,
+  NotificationCampaignRecipient,
+  Page,
+  PublicAppConfig,
+  PublicAppointmentDraft,
+  SeoIndexItem,
+  Service,
+  SiteNavigationItem,
+  Testimonial
+} from "@/types/cms";
 
 const serverBaseUrl = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://backend:8000/api/v1";
 const browserBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
@@ -43,6 +62,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function getBrandSettings() {
   return apiFetch<BrandSettings>("/public/brand-settings/");
+}
+
+export async function getPublicAppConfig() {
+  return apiFetch<PublicAppConfig>("/public/app-config/");
 }
 
 export async function getPage(slug: string) {
@@ -99,6 +122,18 @@ export async function submitRitualBookingLead(slug: string, data: { full_name: s
   });
 }
 
+export async function getServiceAvailableSlots(slug: string, date: string) {
+  const payload = await apiFetch<AvailableSlotsResponse>(`/public/services/${slug}/available-slots/?date=${encodeURIComponent(date)}`);
+  return Array.isArray(payload) ? payload : payload.slots || [];
+}
+
+export async function submitServiceAppointment(slug: string, data: PublicAppointmentDraft) {
+  return apiFetch<{ id: number; message?: string; starts_at?: string; ends_at?: string }>(`/public/services/${slug}/appointments/`, {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+}
+
 export function authHeaders(): Record<string, string> {
   const token = typeof window !== "undefined" ? window.localStorage.getItem("glow_admin_token") : null;
   return token ? { Authorization: `Token ${token}` } : {};
@@ -125,6 +160,57 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
     return undefined as T;
   }
   return response.json() as Promise<T>;
+}
+
+export async function getFounderDashboard(period: string) {
+  return adminFetch<FounderDashboardResponse>(`/admin/dashboard/founder/?period=${encodeURIComponent(period)}`);
+}
+
+export async function getContactHistory(contactId: number) {
+  return adminFetch<ContactHistoryEntry[]>(`/admin/contact-history/?contact=${encodeURIComponent(String(contactId))}`);
+}
+
+export async function createContactHistory(
+  contactId: number,
+  data: Pick<ContactHistoryEntry, "event_at" | "service_label" | "amount" | "notes"> & Partial<Pick<ContactHistoryEntry, "appointment" | "before_photo" | "after_photo">>
+) {
+  return adminFetch<ContactHistoryEntry>("/admin/contact-history/", {
+    method: "POST",
+    body: JSON.stringify({ contact: contactId, ...data })
+  });
+}
+
+export async function getAppointmentPhotos(appointmentId: number) {
+  return adminFetch<AppointmentPhoto[]>(`/admin/appointments/${appointmentId}/photos/`);
+}
+
+export async function createAppointmentPhoto(appointmentId: number, data: FormData | Partial<AppointmentPhoto>) {
+  return adminFetch<AppointmentPhoto>(`/admin/appointments/${appointmentId}/photos/`, {
+    method: "POST",
+    body: data instanceof FormData ? data : JSON.stringify(data)
+  });
+}
+
+export async function getNotificationCampaigns() {
+  return adminFetch<NotificationCampaign[]>("/admin/notification-campaigns/");
+}
+
+export async function saveNotificationCampaign(data: Partial<NotificationCampaign>) {
+  const path = data.id ? `/admin/notification-campaigns/${data.id}/` : "/admin/notification-campaigns/";
+  return adminFetch<NotificationCampaign>(path, {
+    method: data.id ? "PATCH" : "POST",
+    body: JSON.stringify(data)
+  });
+}
+
+export async function sendNotificationCampaign(campaignId: number) {
+  return adminFetch<NotificationCampaign>(`/admin/notification-campaigns/${campaignId}/send/`, {
+    method: "POST"
+  });
+}
+
+export async function getNotificationCampaignRecipients(campaignId: number) {
+  return adminFetch<{ count: number; results: NotificationCampaignRecipient[] }>(`/admin/notification-campaigns/${campaignId}/recipients/preview/`);
 }
 
 async function readResponseBody(response: Response): Promise<unknown | null> {

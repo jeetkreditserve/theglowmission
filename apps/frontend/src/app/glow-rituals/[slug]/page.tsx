@@ -7,7 +7,7 @@ import { JsonLd } from "@/components/public/JsonLd";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ResponsiveImage } from "@/components/public/ResponsiveImage";
 import { RitualBookingButton } from "@/components/public/RitualBookingButton";
-import { fallbackBrand, getBrandSettings, getNavigationItems, getService } from "@/lib/api";
+import { fallbackBrand, getBrandSettings, getNavigationItems, getPublicAppConfig, getService } from "@/lib/api";
 import { pageMetadata } from "@/lib/metadata";
 import { breadcrumbJsonLd, localBusinessJsonLd, organizationJsonLd, serviceJsonLd, webPageJsonLd, websiteJsonLd } from "@/lib/structured-data";
 
@@ -27,10 +27,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [brand, navigationItems, service] = await Promise.all([
+  const [brand, navigationItems, service, appConfig] = await Promise.all([
     getBrandSettings().catch(() => fallbackBrand()),
     getNavigationItems().catch(() => []),
-    getService(slug).catch(() => null)
+    getService(slug).catch(() => null),
+    getPublicAppConfig().catch(() => null)
   ]);
   if (!service) notFound();
 
@@ -63,7 +64,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               <h1 className="mt-5 font-display text-5xl leading-tight md:text-7xl">{service.title}</h1>
               <p className="mt-6 max-w-2xl text-lg leading-9 text-ivory/76">{service.description || service.short_description}</p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <RitualBookingButton service={service} className="brand-button inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-espresso transition hover:bg-ivory">
+                <RitualBookingButton service={service} bookingFlags={appConfig?.feature_flags} className="brand-button inline-flex items-center gap-3 bg-champagne px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-espresso transition hover:bg-ivory">
                   Book this ritual
                   <ArrowRight size={15} />
                 </RitualBookingButton>

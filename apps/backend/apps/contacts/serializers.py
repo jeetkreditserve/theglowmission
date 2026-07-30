@@ -4,7 +4,8 @@ from django.core.validators import validate_email
 from rest_framework import serializers
 
 from apps.common.form_validation import validate_digit_phone
-from apps.contacts.models import Contact, ContactAuditEvent, ContactNote, ContactStatus
+from apps.common.storage import file_key, file_url
+from apps.contacts.models import Contact, ContactAuditEvent, ContactHistoryEntry, ContactNote, ContactStatus
 from apps.contacts.services import default_contact_status, normalize_email, normalize_phone, possible_duplicate_contacts
 
 
@@ -67,11 +68,82 @@ class ContactNoteSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by_email", "created_at", "updated_at"]
 
 
+class ContactHistoryEntrySerializer(serializers.ModelSerializer):
+    contact_display_name = serializers.CharField(source="contact.display_name", read_only=True)
+    appointment_starts_at = serializers.DateTimeField(source="appointment.starts_at", read_only=True)
+    appointment_status = serializers.CharField(source="appointment.status", read_only=True)
+    created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
+    before_photo_url = serializers.SerializerMethodField()
+    before_photo_key = serializers.SerializerMethodField()
+    after_photo_url = serializers.SerializerMethodField()
+    after_photo_key = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContactHistoryEntry
+        fields = [
+            "id",
+            "contact",
+            "contact_display_name",
+            "appointment",
+            "appointment_starts_at",
+            "appointment_status",
+            "event_at",
+            "service_label",
+            "amount",
+            "notes",
+            "before_photo",
+            "before_photo_url",
+            "before_photo_key",
+            "after_photo",
+            "after_photo_url",
+            "after_photo_key",
+            "created_by",
+            "created_by_email",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_by", "created_by_email", "created_at", "updated_at"]
+        extra_kwargs = {
+            "service_label": {"required": False, "allow_blank": True},
+            "amount": {"required": False, "allow_null": True},
+            "notes": {"required": False, "allow_blank": True},
+            "appointment": {"required": False, "allow_null": True},
+            "before_photo": {"required": False, "allow_null": True},
+            "after_photo": {"required": False, "allow_null": True},
+        }
+
+    def validate(self, attrs):
+        appointment = attrs.get("appointment", getattr(self.instance, "appointment", None))
+        contact = attrs.get("contact", getattr(self.instance, "contact", None))
+        if appointment and contact and appointment.contact_id and appointment.contact_id != contact.pk:
+            raise serializers.ValidationError({"appointment": "Appointment belongs to a different contact."})
+        if appointment and not attrs.get("service_label") and not getattr(self.instance, "service_label", ""):
+            attrs["service_label"] = appointment.service.title
+        return attrs
+
+    def get_before_photo_url(self, obj):
+        return file_url(obj.before_photo.image) if obj.before_photo_id and obj.before_photo else None
+
+    def get_before_photo_key(self, obj):
+        return file_key(obj.before_photo.image) if obj.before_photo_id and obj.before_photo else None
+
+    def get_after_photo_url(self, obj):
+        return file_url(obj.after_photo.image) if obj.after_photo_id and obj.after_photo else None
+
+    def get_after_photo_key(self, obj):
+        return file_key(obj.after_photo.image) if obj.after_photo_id and obj.after_photo else None
+
+
 class ContactSerializer(serializers.ModelSerializer):
     status_name = serializers.CharField(source="status.name", read_only=True)
     display_name = serializers.CharField(read_only=True)
     notes = ContactNoteSerializer(many=True, read_only=True)
     audit_events = ContactAuditEventSerializer(many=True, read_only=True)
+    history_entries = ContactHistoryEntrySerializer(many=True, read_only=True)
+    appointments = serializers.SerializerMethodField()
+    appointment_count = serializers.SerializerMethodField()
+    completed_appointment_count = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
     possible_duplicate_count = serializers.SerializerMethodField()
     possible_duplicates = serializers.SerializerMethodField()
 
@@ -102,6 +174,11 @@ class ContactSerializer(serializers.ModelSerializer):
             "possible_duplicates",
             "notes",
             "audit_events",
+            "history_entries",
+            "appointments",
+            "appointment_count",
+            "completed_appointment_count",
+            "photo_count",
             "created_at",
             "updated_at",
         ]
@@ -117,6 +194,11 @@ class ContactSerializer(serializers.ModelSerializer):
             "possible_duplicates",
             "notes",
             "audit_events",
+            "history_entries",
+            "appointments",
+            "appointment_count",
+            "completed_appointment_count",
+            "photo_count",
             "created_at",
             "updated_at",
         ]
@@ -180,6 +262,41 @@ class ContactSerializer(serializers.ModelSerializer):
             else:
                 values[field] = ""
         return values
+
+    def get_appointments(self, obj):
+        appointments = obj.appointments.select_related("service").prefetch_related("photos").all()
+        return [
+            {
+                "id": appointment.pk,
+                "service": appointment.service_id,
+                "service_title": appointment.service.title if appointment.service_id else "",
+                "service_slug": appointment.service.slug if appointment.service_id else "",
+                "contact": appointment.contact_id,
+                "contact_display_name": obj.display_name,
+                "full_name": appointment.full_name,
+                "phone": appointment.phone,
+                "email": appointment.email,
+                "skin_goal": appointment.skin_goal,
+                "customer_notes": appointment.customer_notes,
+                "starts_at": appointment.starts_at,
+                "ends_at": appointment.ends_at,
+                "status": appointment.status,
+                "source": appointment.source,
+                "photo_count": appointment.photos.count(),
+                "created_at": appointment.created_at,
+                "updated_at": appointment.updated_at,
+            }
+            for appointment in appointments
+        ]
+
+    def get_appointment_count(self, obj):
+        return obj.appointments.count()
+
+    def get_completed_appointment_count(self, obj):
+        return obj.appointments.filter(status="completed").count()
+
+    def get_photo_count(self, obj):
+        return sum(appointment.photos.count() for appointment in obj.appointments.prefetch_related("photos").all())
 
     def create(self, validated_data):
         validated_data["normalized_email"] = normalize_email(validated_data.get("email"))

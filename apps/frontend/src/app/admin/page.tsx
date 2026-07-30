@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, Images, Inbox, LayoutDashboard, Palette, Sparkles, Users, View } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Bell, CalendarDays, FileText, Images, Inbox, Palette, RefreshCcw, Sparkles, Users, View } from "lucide-react";
 import { CampaignActions } from "@/components/admin/CampaignActions";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PublicLink, useAdminList } from "@/components/admin/AdminLists";
+import { getFounderDashboard } from "@/lib/api";
+import type { FounderDashboardMetric, FounderDashboardResponse } from "@/types/cms";
 
 type Campaign = { id: number; title: string; slug: string; status: string; response_count: number; is_active_now: boolean };
 type Page = { id: number; title: string; slug: string; status: string; updated_at: string };
 type Ritual = { id: number; title: string; active: boolean; duration: string };
 type Contact = { id: number; display_name: string };
+type Appointment = { id: number; starts_at: string; status: string };
 type ResponseItem = {
   id: number;
   form: number;
@@ -20,11 +24,16 @@ type ResponseItem = {
 };
 
 export default function AdminDashboardPage() {
+  const [period, setPeriod] = useState("today");
+  const [founderDashboard, setFounderDashboard] = useState<FounderDashboardResponse | null>(null);
+  const [founderLoading, setFounderLoading] = useState(true);
+  const [founderError, setFounderError] = useState("");
   const campaigns = useAdminList<Campaign>("/admin/campaign-forms/");
   const pages = useAdminList<Page>("/admin/pages/");
   const rituals = useAdminList<Ritual>("/admin/services/");
   const contacts = useAdminList<Contact>("/admin/contacts/");
   const responses = useAdminList<ResponseItem>("/admin/campaign-responses/");
+  const appointments = useAdminList<Appointment>("/admin/appointments/");
 
   const recentResponses = [...responses.items]
     .sort((left, right) => new Date(right.submitted_at).getTime() - new Date(left.submitted_at).getTime())
@@ -33,6 +42,38 @@ export default function AdminDashboardPage() {
   const totalResponses = campaigns.items.reduce((total, campaign) => total + (campaign.response_count || 0), 0);
   const publishedPages = pages.items.filter((page) => page.status === "published").length;
   const activeRituals = rituals.items.filter((ritual) => ritual.active).length;
+  const headlineMetrics = useMemo(() => {
+    const metrics = normalizeMetrics(founderDashboard?.headline_metrics || founderDashboard?.metrics);
+    return metrics.length
+      ? metrics
+      : [
+          { key: "responses", label: "Total responses", value: totalResponses },
+          { key: "contacts", label: "Contacts", value: contacts.items.length },
+          { key: "appointments", label: "Appointments", value: appointments.items.length },
+          { key: "active_campaigns", label: "Active campaigns", value: activeCampaigns },
+          { key: "campaigns", label: "Campaigns", value: campaigns.items.length },
+          { key: "published_pages", label: "Published pages", value: publishedPages },
+          { key: "active_rituals", label: "Active rituals", value: activeRituals }
+        ];
+  }, [activeCampaigns, activeRituals, appointments.items.length, campaigns.items.length, contacts.items.length, founderDashboard, publishedPages, totalResponses]);
+
+  async function loadFounderDashboard(nextPeriod = period) {
+    setFounderLoading(true);
+    setFounderError("");
+    try {
+      setFounderDashboard(await getFounderDashboard(nextPeriod));
+    } catch (err: unknown) {
+      setFounderDashboard(null);
+      setFounderError(err instanceof Error && err.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Founder metrics are unavailable.");
+    } finally {
+      setFounderLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadFounderDashboard(period);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
 
   return (
     <AdminShell title="Overview">
@@ -41,31 +82,43 @@ export default function AdminDashboardPage() {
           <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:p-7">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-champagne">Command center</p>
-              <h2 className="mt-3 font-display text-4xl leading-tight">Manage campaigns, content, and incoming leads from one place.</h2>
+              <h2 className="mt-3 font-display text-4xl leading-tight">Founder dashboard for leads, bookings, and studio momentum.</h2>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-ivory/70">
-                Recent campaign entries, response exports, page updates, and public previews are all available from this overview.
+                Headline metrics come from the v1 founder dashboard API, with content and campaign shortcuts kept close for daily admin work.
               </p>
+              {founderError && <p className="mt-4 text-sm font-semibold text-red-100">{founderError}</p>}
             </div>
             <div className="flex flex-wrap items-start gap-3 lg:justify-end">
+              <label className="min-w-40">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ivory/55">Period</span>
+                <select value={period} onChange={(event) => setPeriod(event.target.value)} className="admin-input mt-2 border-ivory/20 bg-white/10 text-ivory">
+                  <option className="text-espresso" value="today">Today</option>
+                  <option className="text-espresso" value="this_week">This week</option>
+                  <option className="text-espresso" value="this_month">This month</option>
+                  <option className="text-espresso" value="previous_month">Previous month</option>
+                  <option className="text-espresso" value="same_period_last_year">Same period last year</option>
+                </select>
+              </label>
+              <button type="button" onClick={() => loadFounderDashboard()} className="admin-button-secondary border-ivory/25 bg-white/8 text-ivory hover:bg-white/14 hover:text-white">
+                <RefreshCcw size={16} />
+                {founderLoading ? "Refreshing" : "Refresh"}
+              </button>
               <Link href="/admin/campaign-responses" className="admin-button bg-champagne text-espresso hover:bg-ivory">
                 <Inbox size={16} />
                 View responses
               </Link>
-              <Link href="/admin/campaigns" className="admin-button-secondary border-ivory/25 bg-white/8 text-ivory hover:bg-white/14 hover:text-white">
-                <LayoutDashboard size={16} />
-                Manage campaigns
+              <Link href="/admin/notification-campaigns" className="admin-button-secondary border-ivory/25 bg-white/8 text-ivory hover:bg-white/14 hover:text-white">
+                <Bell size={16} />
+                Notifications
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <Metric label="Total responses" value={totalResponses} href="/admin/campaign-responses" />
-          <Metric label="Contacts" value={contacts.items.length} href="/admin/contacts" />
-          <Metric label="Active campaigns" value={activeCampaigns} href="/admin/campaigns" />
-          <Metric label="Campaigns" value={campaigns.items.length} href="/admin/campaigns" />
-          <Metric label="Published pages" value={publishedPages} href="/admin/pages" />
-          <Metric label="Active rituals" value={activeRituals} href="/admin/glow-rituals" />
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {headlineMetrics.map((metric) => (
+            <Metric key={metric.key} metric={metric} href={hrefForMetric(metric.key)} />
+          ))}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.8fr)]">
@@ -144,7 +197,9 @@ export default function AdminDashboardPage() {
                 <QuickAction href="/admin/pages" icon={<FileText size={16} />} label="Pages" />
                 <QuickAction href="/admin/hero" icon={<View size={16} />} label="Hero" />
                 <QuickAction href="/admin/glow-rituals" icon={<Sparkles size={16} />} label="Rituals" />
+                <QuickAction href="/admin/appointments" icon={<CalendarDays size={16} />} label="Appointments" />
                 <QuickAction href="/admin/contacts" icon={<Users size={16} />} label="Contacts" />
+                <QuickAction href="/admin/notification-campaigns" icon={<Bell size={16} />} label="Notifications" />
                 <QuickAction href="/admin/media" icon={<Images size={16} />} label="Media" />
                 <QuickAction href="/admin/campaign-responses" icon={<Inbox size={16} />} label="Responses" />
               </div>
@@ -159,14 +214,16 @@ export default function AdminDashboardPage() {
   );
 }
 
-function Metric({ label, value, href }: { label: string; value: number; href: string }) {
+function Metric({ metric, href }: { metric: FounderDashboardMetric; href: string }) {
   return (
     <Link href={href} className="group border border-champagne/25 bg-ivory/90 p-5 shadow-[0_18px_60px_rgba(37,29,24,0.06)] transition hover:-translate-y-0.5 hover:bg-white">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-champagne">{metric.label}</p>
         <ArrowRight size={16} className="text-espresso/35 transition group-hover:translate-x-0.5 group-hover:text-espresso" />
       </div>
-      <p className="mt-4 font-display text-5xl leading-none text-espresso">{value}</p>
+      <p className="mt-4 font-display text-5xl leading-none text-espresso">{formatMetricValue(metric.value)}</p>
+      {metric.change !== undefined && metric.change !== null && <p className="mt-3 text-sm font-semibold text-espresso/58">{formatMetricValue(metric.change)} vs previous</p>}
+      {metric.description && <p className="mt-2 text-sm leading-5 text-espresso/55">{metric.description}</p>}
     </Link>
   );
 }
@@ -228,4 +285,47 @@ function formatValue(value: unknown) {
   if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "-";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function normalizeMetrics(metrics: FounderDashboardResponse["headline_metrics"] | FounderDashboardResponse["metrics"]): FounderDashboardMetric[] {
+  if (!metrics) return [];
+  if (Array.isArray(metrics)) {
+    return metrics.map((metric, index) => ({
+      key: metric.key || `metric_${index}`,
+      label: metric.label || humanize(String(metric.key || `metric_${index}`)),
+      value: metric.value ?? "-"
+    }));
+  }
+  return Object.entries(metrics).map(([key, value]) => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const metric = value as FounderDashboardMetric;
+      return {
+        key: metric.key || key,
+        label: metric.label || humanize(key),
+        value: metric.value ?? "-",
+        change: metric.change,
+        description: metric.description
+      };
+    }
+    return { key, label: humanize(key), value: value as string | number };
+  });
+}
+
+function hrefForMetric(key: string) {
+  if (key.includes("appointment") || key.includes("booking")) return "/admin/appointments";
+  if (key.includes("contact") || key.includes("customer")) return "/admin/contacts";
+  if (key.includes("notification")) return "/admin/notification-campaigns";
+  if (key.includes("response") || key.includes("lead")) return "/admin/campaign-responses";
+  if (key.includes("campaign")) return "/admin/campaigns";
+  if (key.includes("page")) return "/admin/pages";
+  if (key.includes("ritual") || key.includes("service")) return "/admin/glow-rituals";
+  return "/admin";
+}
+
+function formatMetricValue(value: string | number) {
+  return typeof value === "number" ? value.toLocaleString("en-IN") : value;
+}
+
+function humanize(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
