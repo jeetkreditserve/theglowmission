@@ -480,3 +480,23 @@ export type NotificationCampaignRecipient = {
   phone?: string;
   created_at?: string;
 };
+
+export type NotificationMessageLog = {
+  id: number;
+  campaign: number;
+  campaign_title?: string;
+  campaign_subject?: string;
+  campaign_body?: string;
+  recipient?: number | null;
+  recipient_display_name?: string;
+  contact?: number | null;
+  user?: number | null;
+  channel: string;
+  recipient_address: string;
+  status: string;
+  error?: string;
+  sent_at?: string | null;
+  opened_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};

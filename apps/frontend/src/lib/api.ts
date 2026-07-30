@@ -10,6 +10,7 @@ import type {
   FounderDashboardResponse,
   NotificationCampaign,
   NotificationCampaignRecipient,
+  NotificationMessageLog,
   Page,
   PublicAppConfig,
   PublicAppointmentDraft,
@@ -211,6 +212,10 @@ export async function sendNotificationCampaign(campaignId: number) {
 
 export async function getNotificationCampaignRecipients(campaignId: number) {
   return adminFetch<{ count: number; results: NotificationCampaignRecipient[] }>(`/admin/notification-campaigns/${campaignId}/recipients/preview/`);
+}
+
+export async function getNotificationCampaignLogs(campaignId: number) {
+  return adminFetch<NotificationMessageLog[]>(`/admin/notification-campaigns/${campaignId}/message-logs/`);
 }
 
 async function readResponseBody(response: Response): Promise<unknown | null> {

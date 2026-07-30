@@ -7,12 +7,13 @@ import { useAdminToast } from "@/components/admin/AdminToasts";
 import {
   ApiError,
   formatApiError,
+  getNotificationCampaignLogs,
   getNotificationCampaignRecipients,
   getNotificationCampaigns,
   saveNotificationCampaign,
   sendNotificationCampaign
 } from "@/lib/api";
-import type { NotificationCampaign, NotificationCampaignRecipient } from "@/types/cms";
+import type { NotificationCampaign, NotificationCampaignRecipient, NotificationMessageLog } from "@/types/cms";
 
 type ApiList<T> = T[] | { results: T[] };
 type Draft = {
@@ -42,7 +43,9 @@ export default function AdminNotificationCampaignsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [selected, setSelected] = useState<NotificationCampaign | null>(null);
   const [recipients, setRecipients] = useState<NotificationCampaignRecipient[]>([]);
+  const [logs, setLogs] = useState<NotificationMessageLog[]>([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
   const toast = useAdminToast();
 
   const totals = useMemo(
@@ -124,13 +127,21 @@ export default function AdminNotificationCampaignsPage() {
   async function reviewRecipients(campaign: NotificationCampaign) {
     setSelected(campaign);
     setRecLoading(true);
+    setLogsLoading(true);
     try {
-      setRecipients(unwrap(await getNotificationCampaignRecipients(campaign.id)));
+      const [recipientPayload, logPayload] = await Promise.all([
+        getNotificationCampaignRecipients(campaign.id),
+        getNotificationCampaignLogs(campaign.id)
+      ]);
+      setRecipients(unwrap(recipientPayload));
+      setLogs(logPayload);
     } catch (err: unknown) {
       setRecipients([]);
-      toast.error(err instanceof Error && err.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Unable to load recipients.");
+      setLogs([]);
+      toast.error(err instanceof Error && err.message === "AUTH_REQUIRED" ? "Sign in to continue." : "Unable to load notification campaign detail.");
     } finally {
       setRecLoading(false);
+      setLogsLoading(false);
     }
   }
 
@@ -319,6 +330,41 @@ export default function AdminNotificationCampaignsPage() {
                     ))}
                 </tbody>
               </table>
+            </div>
+            <div className="mt-8 border-t border-champagne/20 pt-6">
+              <h4 className="font-display text-xl text-espresso">Delivery logs</h4>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+                  <thead className="bg-cream text-xs uppercase tracking-[0.16em] text-espresso/62">
+                    <tr>
+                      <th className="px-5 py-4 font-semibold">Recipient</th>
+                      <th className="px-5 py-4 font-semibold">Channel</th>
+                      <th className="px-5 py-4 font-semibold">Status</th>
+                      <th className="px-5 py-4 font-semibold">Sent at</th>
+                      <th className="px-5 py-4 font-semibold">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logsLoading && <TableMessage colSpan={5} message="Loading delivery logs..." />}
+                    {!logsLoading && !logs.length && <TableMessage colSpan={5} message="No delivery logs yet. Logs appear after sending." />}
+                    {!logsLoading &&
+                      logs.map((log) => (
+                        <tr key={log.id} className="border-t border-champagne/20 align-top">
+                          <td className="px-5 py-4">
+                            <p className="font-semibold text-espresso">{log.recipient_display_name || "-"}</p>
+                            <p className="mt-1 text-espresso/58">{log.recipient_address || "-"}</p>
+                          </td>
+                          <td className="px-5 py-4 text-espresso/75">{humanize(log.channel)}</td>
+                          <td className="px-5 py-4">
+                            <StatusPill value={log.status} />
+                          </td>
+                          <td className="px-5 py-4 text-espresso/75">{log.sent_at ? formatDate(log.sent_at) : "-"}</td>
+                          <td className="px-5 py-4 text-espresso/70">{log.error || "-"}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
         )}
