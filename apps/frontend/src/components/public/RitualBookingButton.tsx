@@ -299,11 +299,6 @@ export function RitualBookingButton({
                     </div>
 
                     {slotError && <div className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{slotError}</div>}
-                    {slotError && calendlyEnabled && (
-                      <button type="button" onClick={continueToCalendly} disabled={submitting} className="brand-button mt-4 bg-white px-5 py-3 text-xs font-bold text-espresso ring-1 ring-champagne/35 transition hover:bg-champagne disabled:opacity-55">
-                        Use Calendly fallback
-                      </button>
-                    )}
                   </section>
                 )}
 
