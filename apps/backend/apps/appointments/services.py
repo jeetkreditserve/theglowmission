@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -17,6 +18,9 @@ from apps.appointments.models import Appointment, AppointmentAvailabilityWindow,
 from apps.campaigns.models import CampaignForm, CampaignFormResponse
 from apps.contacts.services import normalize_email, sync_campaign_response_to_contact
 from apps.content.models import Service
+
+
+APPOINTMENT_AVAILABILITY_ZONE = ZoneInfo("Asia/Kolkata")
 
 
 def service_duration_minutes(service: Service) -> int:
@@ -94,6 +98,73 @@ def is_slot_available(service: Service, starts_at: datetime, ends_at: datetime, 
         if starts_at < appointment_range_end and ends_at > appointment_range_start:
             return False
     return True
+
+
+def availability_window_covers_appointment(window: AppointmentAvailabilityWindow, appointment: Appointment) -> bool:
+    if not window.active:
+        return False
+    starts_at = timezone.localtime(appointment.starts_at, APPOINTMENT_AVAILABILITY_ZONE)
+    ends_at = timezone.localtime(appointment.ends_at, APPOINTMENT_AVAILABILITY_ZONE)
+    if starts_at.date() != ends_at.date():
+        return False
+    return (
+        starts_at.weekday() == window.weekday
+        and window.starts_at <= starts_at.time()
+        and ends_at.time() <= window.ends_at
+    )
+
+
+def proposed_availability_window(
+    window: AppointmentAvailabilityWindow,
+    proposed_values: dict[str, Any],
+) -> AppointmentAvailabilityWindow:
+    return AppointmentAvailabilityWindow(
+        weekday=proposed_values.get("weekday", window.weekday),
+        starts_at=proposed_values.get("starts_at", window.starts_at),
+        ends_at=proposed_values.get("ends_at", window.ends_at),
+        active=proposed_values.get("active", window.active),
+        label=proposed_values.get("label", window.label),
+        ordering=proposed_values.get("ordering", window.ordering),
+    )
+
+
+def availability_impact_for_window_change(
+    window: AppointmentAvailabilityWindow,
+    *,
+    proposed_values: dict[str, Any] | None = None,
+    delete: bool = False,
+    now: datetime | None = None,
+) -> list[Appointment]:
+    if not window.active:
+        return []
+
+    now = now or timezone.now()
+    proposed_values = proposed_values or {}
+    active_windows = list(
+        AppointmentAvailabilityWindow.objects.filter(active=True)
+        .exclude(pk=window.pk)
+        .order_by("weekday", "ordering", "starts_at", "id")
+    )
+    if not delete:
+        proposed_window = proposed_availability_window(window, proposed_values)
+        if proposed_window.active:
+            active_windows.append(proposed_window)
+
+    affected: list[Appointment] = []
+    appointments = (
+        Appointment.objects.select_related("service")
+        .filter(status=Appointment.Status.CONFIRMED, starts_at__gte=now)
+        .order_by("starts_at", "id")
+    )
+    for appointment in appointments:
+        if not availability_window_covers_appointment(window, appointment):
+            continue
+        if not any(
+            availability_window_covers_appointment(active_window, appointment)
+            for active_window in active_windows
+        ):
+            affected.append(appointment)
+    return affected
 
 
 def validate_selected_slot(service: Service, starts_at: datetime, *, exclude_appointment_id: int | None = None) -> datetime:

@@ -239,6 +239,42 @@ class AppointmentAvailabilityWindowSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class AppointmentAvailabilityImpactRequestSerializer(serializers.Serializer):
+    delete = serializers.BooleanField(required=False, default=False)
+    action = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    operation = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    mode = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    weekday = serializers.IntegerField(required=False, min_value=0, max_value=6)
+    starts_at = serializers.TimeField(required=False)
+    ends_at = serializers.TimeField(required=False)
+    active = serializers.BooleanField(required=False)
+    label = serializers.CharField(required=False, allow_blank=True, max_length=120, trim_whitespace=True)
+    ordering = serializers.IntegerField(required=False, min_value=0)
+
+    def validate(self, attrs):
+        operation_values = [attrs.get("action", ""), attrs.get("operation", ""), attrs.get("mode", "")]
+        if any(value.lower() in {"delete", "destroy", "remove"} for value in operation_values):
+            attrs["delete"] = True
+        if attrs.get("delete"):
+            return attrs
+
+        window = self.context["window"]
+        starts_at = attrs.get("starts_at", window.starts_at)
+        ends_at = attrs.get("ends_at", window.ends_at)
+        if ends_at <= starts_at:
+            raise serializers.ValidationError({"ends_at": "End time must be after the start time."})
+        return attrs
+
+
+class AppointmentAvailabilityImpactAppointmentSerializer(serializers.ModelSerializer):
+    service_title = serializers.CharField(source="service.title", read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = ["id", "full_name", "service_title", "starts_at", "ends_at", "status"]
+        read_only_fields = fields
+
+
 class AppointmentBlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentBlock

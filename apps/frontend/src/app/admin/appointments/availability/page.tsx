@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { ArrowLeft, CalendarDays } from "lucide-react";
-import { AdminResourceManager } from "@/components/admin/AdminResourceManager";
+import { AdminResourceManager, type AdminResourceSaveConfirmationContext } from "@/components/admin/AdminResourceManager";
 import { AdminShell } from "@/components/admin/AdminShell";
-import type { AppointmentAvailabilityWindow, AppointmentBlock } from "@/types/cms";
+import { adminFetch } from "@/lib/api";
+import type { AppointmentAvailabilityImpact, AppointmentAvailabilityWindow, AppointmentBlock } from "@/types/cms";
 
 const weekdays = [
   { label: "Monday", value: 0 },
@@ -43,19 +44,19 @@ export default function AdminAppointmentAvailabilityPage() {
           createLabel="New window"
           defaults={{
             weekday: 0,
-            starts_at: "10:00",
-            ends_at: "18:00",
+            starts_at: "13:30",
+            ends_at: "19:30",
             active: true
           }}
           columns={[
             { label: "Day", value: (item) => weekdayName(item.weekday) },
-            { label: "Time", value: (item) => `${item.starts_at} - ${item.ends_at}` },
+            { label: "Time", value: (item) => `${formatTime(item.starts_at)} - ${formatTime(item.ends_at)}` },
             { label: "Active", value: (item) => (item.active ? "Yes" : "No") }
           ]}
           fields={[
             { name: "weekday", label: "Weekday", type: "select", options: weekdays, required: true },
-            { name: "starts_at", label: "Start time", placeholder: "10:00", required: true },
-            { name: "ends_at", label: "End time", placeholder: "18:00", required: true },
+            { name: "starts_at", label: "Start time", placeholder: "13:30", required: true },
+            { name: "ends_at", label: "End time", placeholder: "19:30", required: true },
             { name: "label", label: "Label", placeholder: "Morning / Evening" },
             { name: "active", label: "Active", type: "checkbox" }
           ]}
@@ -63,6 +64,8 @@ export default function AdminAppointmentAvailabilityPage() {
             ...payload,
             weekday: Number(payload.weekday)
           })}
+          confirmSave={confirmWeeklyAvailabilitySave}
+          confirmDelete={confirmWeeklyAvailabilityDelete}
           extraActions={() => (
             <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-espresso/45">
               <CalendarDays size={13} />
@@ -106,6 +109,55 @@ export default function AdminAppointmentAvailabilityPage() {
   );
 }
 
+async function confirmWeeklyAvailabilitySave({ editingId, method, payload }: AdminResourceSaveConfirmationContext<AppointmentAvailabilityWindow>) {
+  if (method !== "PATCH" || !editingId) return true;
+  const impact = await fetchWeeklyAvailabilityImpact(editingId, payload);
+  if (!impactAffectedCount(impact)) return true;
+  return confirmAvailabilityImpact("Saving this weekly availability window", impact);
+}
+
+async function confirmWeeklyAvailabilityDelete(item: AppointmentAvailabilityWindow) {
+  const impact = await fetchWeeklyAvailabilityImpact(item.id, { delete: true });
+  if (!impactAffectedCount(impact)) return window.confirm("Delete this availability window?");
+  return confirmAvailabilityImpact("Deleting this weekly availability window", impact);
+}
+
+function fetchWeeklyAvailabilityImpact(id: number, payload: Record<string, unknown>) {
+  return adminFetch<AppointmentAvailabilityImpact>(`/admin/appointment-availability/${id}/impact/`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+function confirmAvailabilityImpact(action: string, impact: AppointmentAvailabilityImpact) {
+  const count = impactAffectedCount(impact);
+  const visibleAppointments = impact.appointments.slice(0, 5);
+  const appointmentLines = visibleAppointments.map((appointment) => {
+    const service = appointment.service_title ? ` (${appointment.service_title})` : "";
+    const status = appointment.status ? ` [${appointment.status}]` : "";
+    return `- ${appointment.full_name || "Unnamed appointment"}${service}: ${formatDateTime(appointment.starts_at)} - ${formatDateTime(appointment.ends_at)}${status}`;
+  });
+  const remainingCount = Math.max(count - visibleAppointments.length, 0);
+  if (remainingCount) {
+    appointmentLines.push(`- ...and ${remainingCount} more`);
+  }
+
+  return window.confirm(
+    [
+      `${action} will affect ${count} booked ${count === 1 ? "appointment" : "appointments"}.`,
+      "",
+      ...appointmentLines,
+      "",
+      "Continue?"
+    ].join("\n")
+  );
+}
+
+function impactAffectedCount(impact: AppointmentAvailabilityImpact) {
+  const count = Number(impact.affected_count);
+  return Number.isFinite(count) ? count : impact.appointments.length;
+}
+
 function weekdayName(value: number) {
   return weekdays.find((weekday) => Number(weekday.value) === Number(value))?.label || String(value);
 }
@@ -124,4 +176,17 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short"
   });
+}
+
+function formatTime(value: string) {
+  const match = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return value || "-";
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return value;
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC"
+  }).format(new Date(Date.UTC(2000, 0, 1, hours, minutes)));
 }

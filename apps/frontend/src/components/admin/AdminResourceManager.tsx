@@ -29,6 +29,17 @@ export type ColumnConfig<T> = {
   value: (item: T) => React.ReactNode;
 };
 
+export type AdminResourceSaveConfirmationContext<T extends { id: number }> = {
+  draft: Partial<T>;
+  editingId: number | null;
+  method: "POST" | "PATCH";
+  payload: Record<string, unknown>;
+  requestPath: string;
+};
+
+export type AdminResourceSaveConfirmation<T extends { id: number }> = (context: AdminResourceSaveConfirmationContext<T>) => boolean | Promise<boolean>;
+export type AdminResourceDeleteConfirmation<T extends { id: number }> = (item: T) => boolean | Promise<boolean>;
+
 function unwrap<T>(data: ApiList<T>): T[] {
   return Array.isArray(data) ? data : data.results;
 }
@@ -79,7 +90,9 @@ export function AdminResourceManager<T extends { id: number }>({
   queryKey,
   getEditLabel = "Open",
   getPreviewLabel = "View",
-  extraActions
+  extraActions,
+  confirmSave,
+  confirmDelete
 }: {
   path: string;
   title: string;
@@ -95,6 +108,8 @@ export function AdminResourceManager<T extends { id: number }>({
   getEditLabel?: string;
   getPreviewLabel?: string;
   extraActions?: (item: T) => React.ReactNode;
+  confirmSave?: AdminResourceSaveConfirmation<T>;
+  confirmDelete?: AdminResourceDeleteConfirmation<T>;
 }) {
   const [items, setItems] = useState<T[]>([]);
   const [draft, setDraft] = useState<Partial<T> | null>(null);
@@ -248,6 +263,13 @@ export function AdminResourceManager<T extends { id: number }>({
     }
 
     try {
+      if (confirmSave) {
+        const confirmed = await confirmSave({ draft, editingId, method, payload: finalPayload, requestPath });
+        if (!confirmed) {
+          setStatus("");
+          return;
+        }
+      }
       await adminFetch<T>(requestPath, { method, body });
       setStatus("Saved.");
       toast.success(`${capitalize(itemLabel)} saved.`);
@@ -267,7 +289,16 @@ export function AdminResourceManager<T extends { id: number }>({
   }
 
   async function remove(item: T) {
-    const confirmed = window.confirm(`Delete this ${itemLabel}?`);
+    let confirmed = false;
+    try {
+      confirmed = confirmDelete ? await confirmDelete(item) : window.confirm(`Delete this ${itemLabel}?`);
+    } catch (error) {
+      const message = error instanceof ApiError ? formatApiError(error.data, "Unable to delete.") : error instanceof Error ? error.message : "Unable to delete.";
+      setStatus("");
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
     if (!confirmed) return;
     setStatus("Deleting...");
     setFormError("");

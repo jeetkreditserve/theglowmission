@@ -14,6 +14,8 @@ from rest_framework.views import APIView
 
 from apps.appointments.models import Appointment, AppointmentAvailabilityWindow, AppointmentBlock, AppointmentFinanceEntry
 from apps.appointments.serializers import (
+    AppointmentAvailabilityImpactAppointmentSerializer,
+    AppointmentAvailabilityImpactRequestSerializer,
     AppointmentAvailabilityWindowSerializer,
     AppointmentBlockSerializer,
     AppointmentFinanceEntrySerializer,
@@ -28,6 +30,7 @@ from apps.appointments.serializers import (
     service_for_slug,
 )
 from apps.appointments.services import (
+    availability_impact_for_window_change,
     available_slots_for_service,
     cancel_customer_appointment,
     create_customer_appointment,
@@ -154,6 +157,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 start = timezone.make_aware(datetime.combine(parsed, time.min), timezone.get_current_timezone())
                 end = start + timedelta(days=1)
                 queryset = queryset.filter(starts_at__gte=start, starts_at__lt=end)
+        else:
+            date_from = parse_date(self.request.query_params.get("date_from") or "")
+            if date_from:
+                start = timezone.make_aware(datetime.combine(date_from, time.min), timezone.get_current_timezone())
+                queryset = queryset.filter(starts_at__gte=start)
+            date_to = parse_date(self.request.query_params.get("date_to") or "")
+            if date_to:
+                end = timezone.make_aware(datetime.combine(date_to, time.min), timezone.get_current_timezone()) + timedelta(days=1)
+                queryset = queryset.filter(starts_at__lt=end)
         return queryset
 
     def perform_create(self, serializer):
@@ -229,6 +241,26 @@ class AppointmentAvailabilityWindowViewSet(viewsets.ModelViewSet):
         if active in {"true", "false"}:
             queryset = queryset.filter(active=active == "true")
         return queryset
+
+    @action(detail=True, methods=["post"], url_path="impact")
+    def impact(self, request, pk=None):
+        window = self.get_object()
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        for key in ["delete", "action", "operation", "mode"]:
+            if key not in data and key in request.query_params:
+                data[key] = request.query_params[key]
+
+        serializer = AppointmentAvailabilityImpactRequestSerializer(data=data, context={"window": window})
+        serializer.is_valid(raise_exception=True)
+        proposed_fields = {"weekday", "starts_at", "ends_at", "active", "label", "ordering"}
+        proposed_values = {key: value for key, value in serializer.validated_data.items() if key in proposed_fields}
+        appointments = availability_impact_for_window_change(
+            window,
+            proposed_values=proposed_values,
+            delete=serializer.validated_data["delete"],
+        )
+        appointment_data = AppointmentAvailabilityImpactAppointmentSerializer(appointments, many=True).data
+        return Response({"affected_count": len(appointment_data), "appointments": appointment_data})
 
 
 class AppointmentBlockViewSet(viewsets.ModelViewSet):

@@ -228,6 +228,20 @@ export type AppointmentAvailabilityWindow = {
   ordering?: number;
 };
 
+export type AppointmentAvailabilityImpactAppointment = {
+  id: number;
+  full_name: string;
+  service_title: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+};
+
+export type AppointmentAvailabilityImpact = {
+  affected_count: number;
+  appointments: AppointmentAvailabilityImpactAppointment[];
+};
+
 export type AppointmentBlock = {
   id: number;
   starts_at: string;

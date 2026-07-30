@@ -23,6 +23,13 @@ def local_dt(day, hour: int, minute: int = 0):
     return timezone.make_aware(datetime.combine(day, time(hour, minute)), timezone.get_current_timezone())
 
 
+def next_weekday(weekday: int):
+    day = timezone.localdate() + timedelta(days=1)
+    while day.weekday() != weekday:
+        day += timedelta(days=1)
+    return day
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -211,6 +218,38 @@ class AppointmentSchedulingApiTests(TestCase):
         self.assertEqual(appointment.source, Appointment.Source.STAFF_APP)
         self.assertEqual(appointment.duration_minutes, 60)
 
+    def test_staff_appointment_list_filters_by_date_range(self):
+        user = get_user_model().objects.create_superuser("admin", "admin@example.com", "password")
+        self.client.force_authenticate(user)
+        inside = Appointment.objects.create(
+            service=self.service,
+            full_name="Inside Client",
+            phone="9876543212",
+            starts_at=local_dt(self.day, 15),
+            ends_at=local_dt(self.day, 16),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+        Appointment.objects.create(
+            service=self.service,
+            full_name="Outside Client",
+            phone="9876543213",
+            starts_at=local_dt(self.day + timedelta(days=3), 15),
+            ends_at=local_dt(self.day + timedelta(days=3), 16),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+
+        response = self.client.get(
+            "/api/v1/admin/appointments/",
+            {"date_from": self.day.isoformat(), "date_to": self.day.isoformat(), "ordering": "starts_at"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([appointment["id"] for appointment in response.data], [inside.pk])
+
     def test_staff_create_rejects_downtime_overlap(self):
         user = get_user_model().objects.create_superuser("admin", "admin@example.com", "password")
         self.client.force_authenticate(user)
@@ -310,6 +349,157 @@ class AppointmentSchedulingApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["feature_flags"]["first_party_scheduling"])
         self.assertFalse(response.data["feature_flags"]["calendly_booking"])
+
+    def test_availability_impact_previews_narrowing_future_confirmed_appointments(self):
+        user = get_user_model().objects.create_superuser("admin", "admin@example.com", "password")
+        self.client.force_authenticate(user)
+        day = next_weekday(0)
+        window = AppointmentAvailabilityWindow.objects.create(
+            weekday=day.weekday(),
+            starts_at=time(13, 30),
+            ends_at=time(19, 30),
+            active=True,
+            label="Studio hours",
+        )
+        affected = Appointment.objects.create(
+            service=self.service,
+            full_name="Asha Rao",
+            phone="9876543210",
+            starts_at=local_dt(day, 14),
+            ends_at=local_dt(day, 15),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+        Appointment.objects.create(
+            service=self.service,
+            full_name="Mira Shah",
+            phone="9876543211",
+            starts_at=local_dt(day, 16),
+            ends_at=local_dt(day, 17),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+
+        response = self.client.post(
+            f"/api/v1/admin/appointment-availability/{window.pk}/impact/",
+            {"starts_at": "15:00:00", "ends_at": "19:30:00"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["affected_count"], 1)
+        self.assertEqual([appointment["id"] for appointment in response.data["appointments"]], [affected.pk])
+        self.assertEqual(response.data["appointments"][0]["service_title"], self.service.title)
+
+    def test_availability_impact_previews_deleting_current_window(self):
+        user = get_user_model().objects.create_superuser("admin", "admin@example.com", "password")
+        self.client.force_authenticate(user)
+        day = next_weekday(0)
+        window = AppointmentAvailabilityWindow.objects.create(
+            weekday=day.weekday(),
+            starts_at=time(13, 30),
+            ends_at=time(19, 30),
+            active=True,
+            label="Studio hours",
+        )
+        AppointmentAvailabilityWindow.objects.create(
+            weekday=day.weekday(),
+            starts_at=time(16, 0),
+            ends_at=time(17, 30),
+            active=True,
+            label="Late cover",
+        )
+        affected = Appointment.objects.create(
+            service=self.service,
+            full_name="Asha Rao",
+            phone="9876543210",
+            starts_at=local_dt(day, 14),
+            ends_at=local_dt(day, 15),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+        Appointment.objects.create(
+            service=self.service,
+            full_name="Mira Shah",
+            phone="9876543211",
+            starts_at=local_dt(day, 16),
+            ends_at=local_dt(day, 17),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+        Appointment.objects.create(
+            service=self.service,
+            full_name="Leela Shah",
+            phone="9876543212",
+            starts_at=local_dt(day, 20),
+            ends_at=local_dt(day, 21),
+            duration_minutes=60,
+            status=Appointment.Status.CONFIRMED,
+            source=Appointment.Source.ADMIN,
+        )
+
+        response = self.client.post(
+            f"/api/v1/admin/appointment-availability/{window.pk}/impact/",
+            {"delete": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["affected_count"], 1)
+        self.assertEqual([appointment["id"] for appointment in response.data["appointments"]], [affected.pk])
+
+
+class AppointmentAvailabilitySeedCommandTests(TestCase):
+    def test_seed_creates_missing_mon_sat_only_and_is_idempotent(self):
+        output = StringIO()
+        call_command("seed_appointment_availability", stdout=output)
+
+        windows = AppointmentAvailabilityWindow.objects.order_by("weekday")
+        self.assertEqual(windows.count(), 6)
+        self.assertEqual(list(windows.values_list("weekday", flat=True)), [0, 1, 2, 3, 4, 5])
+        self.assertFalse(AppointmentAvailabilityWindow.objects.filter(weekday=6).exists())
+        for window in windows:
+            self.assertEqual(window.starts_at, time(13, 30))
+            self.assertEqual(window.ends_at, time(19, 30))
+            self.assertEqual(window.label, "Studio hours")
+            self.assertEqual(window.ordering, 0)
+            self.assertTrue(window.active)
+
+        second_output = StringIO()
+        call_command("seed_appointment_availability", stdout=second_output)
+
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 6)
+        self.assertIn("created=0", second_output.getvalue())
+        self.assertIn("skipped=6", second_output.getvalue())
+
+    def test_seed_skips_existing_weekday_and_supports_dry_run(self):
+        AppointmentAvailabilityWindow.objects.create(
+            weekday=2,
+            starts_at=time(9, 0),
+            ends_at=time(11, 0),
+            active=False,
+            label="Manual edit",
+            ordering=7,
+        )
+
+        dry_run_output = StringIO()
+        call_command("seed_appointment_availability", dry_run=True, label="Dry run", ordering=3, stdout=dry_run_output)
+
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 1)
+        self.assertIn("would_create=5", dry_run_output.getvalue())
+
+        call_command("seed_appointment_availability", label="Default hours", ordering=3, stdout=StringIO())
+
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 6)
+        manual_window = AppointmentAvailabilityWindow.objects.get(weekday=2)
+        self.assertEqual(manual_window.starts_at, time(9, 0))
+        self.assertEqual(manual_window.ends_at, time(11, 0))
+        self.assertEqual(manual_window.label, "Manual edit")
+        self.assertFalse(manual_window.active)
 
 
 @override_settings(
