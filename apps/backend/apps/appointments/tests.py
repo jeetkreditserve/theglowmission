@@ -30,6 +30,15 @@ def next_weekday(weekday: int):
     return day
 
 
+def seedable_dates(start_offset: int, end_offset: int):
+    today = timezone.localdate()
+    return [
+        today + timedelta(days=offset)
+        for offset in range(start_offset, end_offset + 1)
+        if (today + timedelta(days=offset)).weekday() != 6
+    ]
+
+
 @override_settings(
     ALLOWED_HOSTS=["testserver"],
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -67,6 +76,21 @@ class AppointmentSchedulingApiTests(TestCase):
         self.assertEqual(len(response.data), 2)
         self.assertIn("starts_at", response.data[0])
         self.assertIn("ends_at", response.data[0])
+
+    def test_date_specific_window_overrides_recurring_weekday_fallback(self):
+        AppointmentAvailabilityWindow.objects.create(
+            date=self.day,
+            weekday=self.day.weekday(),
+            starts_at=time(13, 30),
+            ends_at=time(19, 30),
+            active=False,
+            label="Closed for private event",
+        )
+
+        response = self.client.get(f"/api/v1/public/services/{self.service.slug}/available-slots/", {"date": self.day.isoformat()})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
     def test_slots_and_public_create_respect_confirmed_appointment_downtime(self):
         Appointment.objects.create(
@@ -454,15 +478,17 @@ class AppointmentSchedulingApiTests(TestCase):
 
 
 class AppointmentAvailabilitySeedCommandTests(TestCase):
-    def test_seed_creates_missing_mon_sat_only_and_is_idempotent(self):
+    def test_seed_creates_dated_mon_sat_windows_and_is_idempotent(self):
         output = StringIO()
-        call_command("seed_appointment_availability", stdout=output)
+        call_command("seed_appointment_availability", end_offset_days=90, stdout=output)
 
-        windows = AppointmentAvailabilityWindow.objects.order_by("weekday")
-        self.assertEqual(windows.count(), 6)
-        self.assertEqual(list(windows.values_list("weekday", flat=True)), [0, 1, 2, 3, 4, 5])
+        expected_dates = seedable_dates(0, 90)
+        windows = AppointmentAvailabilityWindow.objects.order_by("date")
+        self.assertEqual(windows.count(), len(expected_dates))
+        self.assertEqual(list(windows.values_list("date", flat=True)), expected_dates)
         self.assertFalse(AppointmentAvailabilityWindow.objects.filter(weekday=6).exists())
         for window in windows:
+            self.assertEqual(window.weekday, window.date.weekday())
             self.assertEqual(window.starts_at, time(13, 30))
             self.assertEqual(window.ends_at, time(19, 30))
             self.assertEqual(window.label, "Studio hours")
@@ -470,15 +496,17 @@ class AppointmentAvailabilitySeedCommandTests(TestCase):
             self.assertTrue(window.active)
 
         second_output = StringIO()
-        call_command("seed_appointment_availability", stdout=second_output)
+        call_command("seed_appointment_availability", end_offset_days=90, stdout=second_output)
 
-        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 6)
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), len(expected_dates))
         self.assertIn("created=0", second_output.getvalue())
-        self.assertIn("skipped=6", second_output.getvalue())
+        self.assertIn(f"skipped={len(expected_dates)}", second_output.getvalue())
 
-    def test_seed_skips_existing_weekday_and_supports_dry_run(self):
+    def test_seed_skips_existing_date_and_supports_dry_run(self):
+        existing_date = seedable_dates(0, 6)[0]
         AppointmentAvailabilityWindow.objects.create(
-            weekday=2,
+            date=existing_date,
+            weekday=existing_date.weekday(),
             starts_at=time(9, 0),
             ends_at=time(11, 0),
             active=False,
@@ -487,19 +515,47 @@ class AppointmentAvailabilitySeedCommandTests(TestCase):
         )
 
         dry_run_output = StringIO()
-        call_command("seed_appointment_availability", dry_run=True, label="Dry run", ordering=3, stdout=dry_run_output)
+        call_command("seed_appointment_availability", dry_run=True, end_offset_days=6, label="Dry run", ordering=3, stdout=dry_run_output)
 
         self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 1)
-        self.assertIn("would_create=5", dry_run_output.getvalue())
+        self.assertIn(f"would_create={len(seedable_dates(0, 6)) - 1}", dry_run_output.getvalue())
 
-        call_command("seed_appointment_availability", label="Default hours", ordering=3, stdout=StringIO())
+        call_command("seed_appointment_availability", end_offset_days=6, label="Default hours", ordering=3, stdout=StringIO())
 
-        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 6)
-        manual_window = AppointmentAvailabilityWindow.objects.get(weekday=2)
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), len(seedable_dates(0, 6)))
+        manual_window = AppointmentAvailabilityWindow.objects.get(date=existing_date)
         self.assertEqual(manual_window.starts_at, time(9, 0))
         self.assertEqual(manual_window.ends_at, time(11, 0))
         self.assertEqual(manual_window.label, "Manual edit")
         self.assertFalse(manual_window.active)
+
+    def test_seed_only_if_empty_skips_when_any_window_exists(self):
+        existing_date = seedable_dates(0, 6)[0]
+        AppointmentAvailabilityWindow.objects.create(
+            date=existing_date,
+            weekday=existing_date.weekday(),
+            starts_at=time(9, 0),
+            ends_at=time(11, 0),
+            active=True,
+            label="Manual edit",
+        )
+
+        output = StringIO()
+        call_command("seed_appointment_availability", only_if_empty=True, end_offset_days=90, stdout=output)
+
+        self.assertEqual(AppointmentAvailabilityWindow.objects.count(), 1)
+        self.assertIn("skipped because windows already exist", output.getvalue())
+
+    def test_seed_can_create_only_the_91st_day(self):
+        output = StringIO()
+        call_command("seed_appointment_availability", start_offset_days=91, end_offset_days=91, stdout=output)
+
+        expected_dates = seedable_dates(91, 91)
+        self.assertEqual(list(AppointmentAvailabilityWindow.objects.values_list("date", flat=True)), expected_dates)
+        if expected_dates:
+            self.assertIn("created=1", output.getvalue())
+        else:
+            self.assertIn("created=0", output.getvalue())
 
 
 @override_settings(

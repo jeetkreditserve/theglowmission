@@ -228,10 +228,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class AppointmentAvailabilityWindowSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentAvailabilityWindow
-        fields = ["id", "weekday", "starts_at", "ends_at", "active", "label", "ordering", "created_at", "updated_at"]
+        fields = ["id", "date", "weekday", "starts_at", "ends_at", "active", "label", "ordering", "created_at", "updated_at"]
         read_only_fields = ["created_at", "updated_at"]
 
     def validate(self, attrs):
+        date = attrs.get("date", getattr(self.instance, "date", None))
+        if date:
+            attrs["weekday"] = date.weekday()
         starts_at = attrs.get("starts_at", getattr(self.instance, "starts_at", None))
         ends_at = attrs.get("ends_at", getattr(self.instance, "ends_at", None))
         if starts_at and ends_at and ends_at <= starts_at:
@@ -244,6 +247,7 @@ class AppointmentAvailabilityImpactRequestSerializer(serializers.Serializer):
     action = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
     operation = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
     mode = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    date = serializers.DateField(required=False, allow_null=True)
     weekday = serializers.IntegerField(required=False, min_value=0, max_value=6)
     starts_at = serializers.TimeField(required=False)
     ends_at = serializers.TimeField(required=False)
@@ -259,6 +263,8 @@ class AppointmentAvailabilityImpactRequestSerializer(serializers.Serializer):
             return attrs
 
         window = self.context["window"]
+        if attrs.get("date"):
+            attrs["weekday"] = attrs["date"].weekday()
         starts_at = attrs.get("starts_at", window.starts_at)
         ends_at = attrs.get("ends_at", window.ends_at)
         if ends_at <= starts_at:

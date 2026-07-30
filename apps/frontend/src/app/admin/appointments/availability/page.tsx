@@ -27,7 +27,7 @@ export default function AdminAppointmentAvailabilityPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-champagne">Booking calendar</p>
               <h2 className="mt-3 font-display text-4xl leading-tight">Control bookable hours and blocked time.</h2>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-ivory/70">
-                Weekly windows create recurring availability. Blocks close specific dates or times for travel, events, and private holds.
+                Dated windows control specific bookable days. Recurring weekday windows still work as fallback when a day has no dated windows.
               </p>
             </div>
             <Link href="/admin/appointments" className="admin-button-secondary border-ivory/25 bg-white/8 text-ivory hover:bg-white/14 hover:text-white">
@@ -39,21 +39,24 @@ export default function AdminAppointmentAvailabilityPage() {
 
         <AdminResourceManager<AppointmentAvailabilityWindow>
           path="/admin/appointment-availability/"
-          title="Weekly availability"
+          title="Availability windows"
           itemLabel="availability window"
           createLabel="New window"
           defaults={{
+            date: "",
             weekday: 0,
             starts_at: "13:30",
             ends_at: "19:30",
             active: true
           }}
           columns={[
+            { label: "Date", value: (item) => item.date ? formatDate(item.date) : "Recurring" },
             { label: "Day", value: (item) => weekdayName(item.weekday) },
             { label: "Time", value: (item) => `${formatTime(item.starts_at)} - ${formatTime(item.ends_at)}` },
             { label: "Active", value: (item) => (item.active ? "Yes" : "No") }
           ]}
           fields={[
+            { name: "date", label: "Date", type: "date", help: "Leave blank only for a recurring weekday fallback." },
             { name: "weekday", label: "Weekday", type: "select", options: weekdays, required: true },
             { name: "starts_at", label: "Start time", placeholder: "13:30", required: true },
             { name: "ends_at", label: "End time", placeholder: "19:30", required: true },
@@ -62,14 +65,15 @@ export default function AdminAppointmentAvailabilityPage() {
           ]}
           transformPayload={(payload) => ({
             ...payload,
+            date: payload.date || null,
             weekday: Number(payload.weekday)
           })}
           confirmSave={confirmWeeklyAvailabilitySave}
           confirmDelete={confirmWeeklyAvailabilityDelete}
-          extraActions={() => (
+          extraActions={(item) => (
             <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-espresso/45">
               <CalendarDays size={13} />
-              Weekly
+              {item.date ? "Dated" : "Recurring"}
             </span>
           )}
         />
@@ -113,13 +117,13 @@ async function confirmWeeklyAvailabilitySave({ editingId, method, payload }: Adm
   if (method !== "PATCH" || !editingId) return true;
   const impact = await fetchWeeklyAvailabilityImpact(editingId, payload);
   if (!impactAffectedCount(impact)) return true;
-  return confirmAvailabilityImpact("Saving this weekly availability window", impact);
+  return confirmAvailabilityImpact("Saving this availability window", impact);
 }
 
 async function confirmWeeklyAvailabilityDelete(item: AppointmentAvailabilityWindow) {
   const impact = await fetchWeeklyAvailabilityImpact(item.id, { delete: true });
   if (!impactAffectedCount(impact)) return window.confirm("Delete this availability window?");
-  return confirmAvailabilityImpact("Deleting this weekly availability window", impact);
+  return confirmAvailabilityImpact("Deleting this availability window", impact);
 }
 
 function fetchWeeklyAvailabilityImpact(id: number, payload: Record<string, unknown>) {
@@ -160,6 +164,14 @@ function impactAffectedCount(impact: AppointmentAvailabilityImpact) {
 
 function weekdayName(value: number) {
   return weekdays.find((weekday) => Number(weekday.value) === Number(value))?.label || String(value);
+}
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-IN", {
+    dateStyle: "medium"
+  });
 }
 
 function normalizeDateTime(value: unknown) {

@@ -72,7 +72,11 @@ def available_slots_for_service(service: Service, slot_date, *, now: datetime | 
     buffer = timedelta(minutes=effective_buffer_minutes_for_service(service))
     min_start = now + timedelta(minutes=int(getattr(settings, "APPOINTMENT_MIN_LEAD_MINUTES", 240)))
     slots: list[dict[str, datetime]] = []
-    windows = AppointmentAvailabilityWindow.objects.filter(active=True, weekday=slot_date.weekday()).order_by("ordering", "starts_at", "id")
+    dated_windows = AppointmentAvailabilityWindow.objects.filter(date=slot_date).order_by("ordering", "starts_at", "id")
+    if dated_windows.exists():
+        windows = dated_windows.filter(active=True)
+    else:
+        windows = AppointmentAvailabilityWindow.objects.filter(active=True, date__isnull=True, weekday=slot_date.weekday()).order_by("ordering", "starts_at", "id")
     for window in windows:
         current = local_datetime(slot_date, window.starts_at)
         window_end = local_datetime(slot_date, window.ends_at)
@@ -107,6 +111,8 @@ def availability_window_covers_appointment(window: AppointmentAvailabilityWindow
     ends_at = timezone.localtime(appointment.ends_at, APPOINTMENT_AVAILABILITY_ZONE)
     if starts_at.date() != ends_at.date():
         return False
+    if window.date and starts_at.date() != window.date:
+        return False
     return (
         starts_at.weekday() == window.weekday
         and window.starts_at <= starts_at.time()
@@ -119,6 +125,7 @@ def proposed_availability_window(
     proposed_values: dict[str, Any],
 ) -> AppointmentAvailabilityWindow:
     return AppointmentAvailabilityWindow(
+        date=proposed_values.get("date", window.date),
         weekday=proposed_values.get("weekday", window.weekday),
         starts_at=proposed_values.get("starts_at", window.starts_at),
         ends_at=proposed_values.get("ends_at", window.ends_at),
@@ -140,15 +147,15 @@ def availability_impact_for_window_change(
 
     now = now or timezone.now()
     proposed_values = proposed_values or {}
-    active_windows = list(
-        AppointmentAvailabilityWindow.objects.filter(active=True)
-        .exclude(pk=window.pk)
-        .order_by("weekday", "ordering", "starts_at", "id")
+    all_windows = list(
+        AppointmentAvailabilityWindow.objects.exclude(pk=window.pk).order_by("date", "weekday", "ordering", "starts_at", "id")
     )
     if not delete:
         proposed_window = proposed_availability_window(window, proposed_values)
-        if proposed_window.active:
-            active_windows.append(proposed_window)
+        if proposed_window.date:
+            proposed_window.weekday = proposed_window.date.weekday()
+        all_windows.append(proposed_window)
+    active_windows = [candidate for candidate in all_windows if candidate.active]
 
     affected: list[Appointment] = []
     appointments = (
@@ -159,12 +166,22 @@ def availability_impact_for_window_change(
     for appointment in appointments:
         if not availability_window_covers_appointment(window, appointment):
             continue
-        if not any(
-            availability_window_covers_appointment(active_window, appointment)
-            for active_window in active_windows
-        ):
+        if not appointment_is_covered_by_effective_windows(appointment, all_windows, active_windows):
             affected.append(appointment)
     return affected
+
+
+def appointment_is_covered_by_effective_windows(
+    appointment: Appointment,
+    all_windows: list[AppointmentAvailabilityWindow],
+    active_windows: list[AppointmentAvailabilityWindow],
+) -> bool:
+    local_date = timezone.localtime(appointment.starts_at, APPOINTMENT_AVAILABILITY_ZONE).date()
+    if any(window.date == local_date for window in all_windows):
+        candidates = [window for window in active_windows if window.date == local_date]
+    else:
+        candidates = [window for window in active_windows if window.date is None]
+    return any(availability_window_covers_appointment(candidate, appointment) for candidate in candidates)
 
 
 def validate_selected_slot(service: Service, starts_at: datetime, *, exclude_appointment_id: int | None = None) -> datetime:
@@ -681,14 +698,22 @@ def first_to_second_visit_metrics(start: datetime, end: datetime) -> tuple[int, 
 
 
 def available_treatment_minutes(start: datetime, end: datetime) -> int:
-    windows_by_weekday: dict[int, list[AppointmentAvailabilityWindow]] = {}
-    for window in AppointmentAvailabilityWindow.objects.filter(active=True):
-        windows_by_weekday.setdefault(window.weekday, []).append(window)
+    windows = list(AppointmentAvailabilityWindow.objects.filter(date__isnull=False))
+    recurring_by_weekday: dict[int, list[AppointmentAvailabilityWindow]] = {}
+    dated_by_date: dict[Any, list[AppointmentAvailabilityWindow]] = {}
+    for window in windows:
+        dated_by_date.setdefault(window.date, []).append(window)
+    for window in AppointmentAvailabilityWindow.objects.filter(active=True, date__isnull=True):
+        recurring_by_weekday.setdefault(window.weekday, []).append(window)
     total = 0
     current_date = timezone.localtime(start).date()
     end_date = timezone.localtime(end).date()
     while current_date < end_date:
-        for window in windows_by_weekday.get(current_date.weekday(), []):
+        if current_date in dated_by_date:
+            day_windows = [window for window in dated_by_date[current_date] if window.active]
+        else:
+            day_windows = recurring_by_weekday.get(current_date.weekday(), [])
+        for window in day_windows:
             window_start = datetime.combine(current_date, window.starts_at)
             window_end = datetime.combine(current_date, window.ends_at)
             total += max(int((window_end - window_start).total_seconds() // 60), 0)

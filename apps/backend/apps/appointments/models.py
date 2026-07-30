@@ -11,6 +11,7 @@ from apps.common.models import TimeStampedModel
 
 
 class AppointmentAvailabilityWindow(TimeStampedModel):
+    date = models.DateField(blank=True, null=True, db_index=True)
     weekday = models.PositiveSmallIntegerField(validators=[MinValueValidator(0), MaxValueValidator(6)])
     starts_at = models.TimeField()
     ends_at = models.TimeField()
@@ -19,14 +20,26 @@ class AppointmentAvailabilityWindow(TimeStampedModel):
     ordering = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["weekday", "ordering", "starts_at", "id"]
+        ordering = ["date", "weekday", "ordering", "starts_at", "id"]
+        indexes = [
+            models.Index(fields=["date", "starts_at"], name="appointment_date_77b8e5_idx"),
+            models.Index(fields=["weekday", "starts_at"], name="appointment_weekda_c56b14_idx"),
+        ]
 
     def clean(self):
+        if self.date:
+            self.weekday = self.date.weekday()
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValidationError({"ends_at": "End time must be after the start time."})
 
+    def save(self, *args, **kwargs):
+        if self.date:
+            self.weekday = self.date.weekday()
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
-        return self.label or f"{self.weekday} {self.starts_at}-{self.ends_at}"
+        day = self.date.isoformat() if self.date else str(self.weekday)
+        return self.label or f"{day} {self.starts_at}-{self.ends_at}"
 
 
 class AppointmentBlock(TimeStampedModel):

@@ -220,6 +220,7 @@ export type AppointmentPhoto = {
 
 export type AppointmentAvailabilityWindow = {
   id: number;
+  date?: string | null;
   weekday: number;
   starts_at: string;
   ends_at: string;

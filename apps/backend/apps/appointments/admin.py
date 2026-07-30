@@ -12,9 +12,9 @@ from apps.appointments.models import (
 
 @admin.register(AppointmentAvailabilityWindow)
 class AppointmentAvailabilityWindowAdmin(admin.ModelAdmin):
-    list_display = ["weekday", "starts_at", "ends_at", "label", "active", "ordering"]
-    list_filter = ["weekday", "active"]
-    ordering = ["weekday", "ordering", "starts_at"]
+    list_display = ["date", "weekday", "starts_at", "ends_at", "label", "active", "ordering"]
+    list_filter = ["date", "weekday", "active"]
+    ordering = ["date", "weekday", "ordering", "starts_at"]
 
 
 @admin.register(AppointmentBlock)

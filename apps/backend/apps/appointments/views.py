@@ -230,7 +230,7 @@ class AppointmentAvailabilityWindowViewSet(viewsets.ModelViewSet):
     queryset = AppointmentAvailabilityWindow.objects.all()
     serializer_class = AppointmentAvailabilityWindowSerializer
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ["weekday", "starts_at", "ordering", "updated_at"]
+    ordering_fields = ["date", "weekday", "starts_at", "ordering", "updated_at"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -240,7 +240,23 @@ class AppointmentAvailabilityWindowViewSet(viewsets.ModelViewSet):
         active = self.request.query_params.get("active")
         if active in {"true", "false"}:
             queryset = queryset.filter(active=active == "true")
+        date_value = parse_date(self.request.query_params.get("date") or "")
+        if date_value:
+            queryset = queryset.filter(date=date_value)
+        date_from = parse_date(self.request.query_params.get("date_from") or "")
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        date_to = parse_date(self.request.query_params.get("date_to") or "")
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
         return queryset
+
+    def perform_destroy(self, instance):
+        if instance.date:
+            instance.active = False
+            instance.save(update_fields=["active", "updated_at"])
+            return
+        instance.delete()
 
     @action(detail=True, methods=["post"], url_path="impact")
     def impact(self, request, pk=None):
@@ -252,7 +268,7 @@ class AppointmentAvailabilityWindowViewSet(viewsets.ModelViewSet):
 
         serializer = AppointmentAvailabilityImpactRequestSerializer(data=data, context={"window": window})
         serializer.is_valid(raise_exception=True)
-        proposed_fields = {"weekday", "starts_at", "ends_at", "active", "label", "ordering"}
+        proposed_fields = {"date", "weekday", "starts_at", "ends_at", "active", "label", "ordering"}
         proposed_values = {key: value for key, value in serializer.validated_data.items() if key in proposed_fields}
         appointments = availability_impact_for_window_change(
             window,
