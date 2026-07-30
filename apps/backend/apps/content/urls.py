@@ -9,6 +9,7 @@ from apps.content.views import (
     MediaAssetViewSet,
     PageSectionViewSet,
     PageViewSet,
+    PublicAppConfigView,
     PublicBrandSettingsView,
     PublicFAQListView,
     PublicGalleryListView,
@@ -38,6 +39,7 @@ router.register("admin/media-assets", MediaAssetViewSet, basename="admin-media-a
 router.register("admin/navigation-items", SiteNavigationItemViewSet, basename="admin-navigation-items")
 
 urlpatterns = [
+    path("public/app-config/", PublicAppConfigView.as_view(), name="public-app-config"),
     path("public/brand-settings/", PublicBrandSettingsView.as_view(), name="public-brand-settings"),
     path("public/hero-slides/", PublicHeroSlideListView.as_view(), name="public-hero-slides"),
     path("public/pages/<slug:slug>/", PublicPageView.as_view(), name="public-page"),

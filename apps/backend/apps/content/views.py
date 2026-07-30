@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from django.conf import settings
+from django.db.models import Max
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -37,6 +40,42 @@ class PublicBrandSettingsView(APIView):
     def get(self, request):
         brand, _ = BrandSettings.objects.get_or_create(pk=1)
         return Response(BrandSettingsSerializer(brand, context={"request": request}).data)
+
+
+class PublicAppConfigView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        brand, _ = BrandSettings.objects.get_or_create(pk=1)
+        pages = Page.objects.filter(status=Page.Status.PUBLISHED).prefetch_related(
+            Prefetch("sections", queryset=PageSection.objects.filter(active=True).order_by("ordering", "id"))
+        )
+        services = Service.objects.filter(active=True).order_by("ordering", "title")
+        navigation_items = SiteNavigationItem.objects.filter(active=True).order_by("placement", "ordering", "id")
+        gallery = GalleryImage.objects.filter(active=True).order_by("ordering", "title")[:12]
+        faqs = FAQ.objects.filter(active=True).order_by("ordering", "question")[:20]
+        testimonials = Testimonial.objects.filter(active=True).order_by("ordering", "name")[:12]
+        hero_slides = [slide for slide in HeroSlide.objects.select_related("linked_campaign").order_by("ordering", "id") if slide.is_active_now]
+        return Response(
+            {
+                "schema_version": 1,
+                "generated_at": timezone.now(),
+                "content_version": latest_content_version(),
+                "cache": {"max_age_seconds": getattr(settings, "APP_CONFIG_CACHE_SECONDS", 300)},
+                "brand": app_brand_payload(brand, request),
+                "theme": app_theme_payload(brand),
+                "contact": app_contact_payload(brand),
+                "navigation": grouped_navigation_payload(navigation_items),
+                "feature_flags": app_feature_flags_payload(),
+                "pages": PageSerializer(pages, many=True, context={"request": request}).data,
+                "services": ServiceSerializer(services, many=True, context={"request": request}).data,
+                "hero_slides": HeroSlideSerializer(hero_slides, many=True, context={"request": request}).data,
+                "gallery": GalleryImageSerializer(gallery, many=True, context={"request": request}).data,
+                "faqs": FAQSerializer(faqs, many=True).data,
+                "testimonials": TestimonialSerializer(testimonials, many=True).data,
+            }
+        )
 
 
 class PublicPageView(RetrieveAPIView):
@@ -175,6 +214,89 @@ def ritual_booking_field_snapshot():
         {"id": 0, "label": "Preferred ritual", "key": "preferred_ritual", "field_type": "text", "required": False, "options": [], "validation": {}, "ordering": 3},
         {"id": 0, "label": "Skin goal", "key": "skin_goal", "field_type": "textarea", "required": False, "options": [], "validation": {}, "ordering": 4},
     ]
+
+
+def app_brand_payload(brand: BrandSettings, request) -> dict:
+    serializer = BrandSettingsSerializer(brand, context={"request": request})
+    data = serializer.data
+    return {
+        "site_title": data["site_title"],
+        "tagline": data["tagline"],
+        "essence": data["essence"],
+        "mission_statement": data["mission_statement"],
+        "canonical_site_url": data["canonical_site_url"],
+        "seo_title": data["seo_title"],
+        "seo_description": data["seo_description"],
+        "business_description": data["business_description"],
+        "area_served": data["area_served"],
+        "logo_url": data["logo_url"],
+        "logo_variants": data["logo_variants"],
+        "favicon_url": data["favicon_url"],
+        "favicon_variants": data["favicon_variants"],
+        "updated_at": data["updated_at"],
+    }
+
+
+def app_theme_payload(brand: BrandSettings) -> dict:
+    return {
+        "colors": {
+            "primary": brand.primary_color,
+            "background": brand.background_color,
+            "surface": brand.surface_color,
+            "muted": brand.muted_color,
+            "accent": brand.accent_color,
+            "text": brand.text_color,
+        },
+        "fonts": {
+            "heading": brand.heading_font,
+            "body": brand.body_font,
+        },
+        "cta_style": brand.cta_style or {},
+    }
+
+
+def app_contact_payload(brand: BrandSettings) -> dict:
+    return {
+        "email": brand.contact_email,
+        "phone": brand.phone,
+        "address": brand.address,
+        "instagram_handle": brand.instagram_handle,
+        "social_links": brand.social_links or {},
+        "same_as_links": brand.same_as_links or [],
+        "opening_hours": brand.opening_hours or [],
+        "location": {
+            "latitude": str(brand.latitude) if brand.latitude is not None else "",
+            "longitude": str(brand.longitude) if brand.longitude is not None else "",
+        },
+    }
+
+
+def grouped_navigation_payload(items) -> dict:
+    grouped = {choice[0]: [] for choice in SiteNavigationItem.Placement.choices}
+    for item in items:
+        grouped.setdefault(item.placement, []).append(SiteNavigationItemSerializer(item).data)
+    return grouped
+
+
+def app_feature_flags_payload() -> dict:
+    return {
+        "customer_registration": getattr(settings, "CUSTOMER_REGISTRATION_ENABLED", True),
+        "customer_password_reset": True,
+        "customer_notifications": getattr(settings, "CUSTOMER_NOTIFICATIONS_ENABLED", True),
+        "web_push": bool(getattr(settings, "WEB_PUSH_PUBLIC_KEY", "")),
+        "native_push": getattr(settings, "CUSTOMER_NOTIFICATIONS_ENABLED", True),
+        "calendly_booking": True,
+        "first_party_scheduling": False,
+    }
+
+
+def latest_content_version():
+    updated_values = []
+    for model in [BrandSettings, Page, PageSection, Service, HeroSlide, GalleryImage, FAQ, Testimonial, SiteNavigationItem]:
+        updated_at = model.objects.aggregate(value=Max("updated_at"))["value"]
+        if updated_at:
+            updated_values.append(updated_at)
+    return max(updated_values) if updated_values else None
 
 
 class PublicHeroSlideListView(ListAPIView):
